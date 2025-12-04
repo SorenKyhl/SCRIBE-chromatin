@@ -5,7 +5,7 @@ This module provides the DataLoader class for loading raw Hi-C and ChIP-seq
 data from .hic and .bigWig files into numpy arrays.
 
 For high-level data access by cell type, use the DataPipeline class from
-pylib.datapipeline instead.
+scribe.datapipeline instead.
 """
 
 from pathlib import Path
@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 import pyBigWig
 
-from pylib import epilib
-from pylib import hic as hiclib
+from scribe import epilib
+from scribe import hic as hiclib
 
 
 def get_experiment_marks(directory):
@@ -159,7 +159,7 @@ class DataLoader:
         # Set up cache directory
         if cache:
             if cache_dir is None:
-                from pylib.paths import get_data_dir
+                from scribe.paths import get_data_dir
 
                 cache_dir = get_data_dir() / "cache"
             cache_dir = Path(cache_dir)

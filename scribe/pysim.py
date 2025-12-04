@@ -7,9 +7,9 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from pylib import utils
-from pylib.pyticg import Sim
-from pylib.utils import cat, cd, copy_last_snapshot
+from scribe import utils
+from scribe.pyticg import Sim
+from scribe.utils import cat, cd, copy_last_snapshot
 
 PathLike = Union[Path, str]
 ArrayLike = Union[list, np.ndarray]

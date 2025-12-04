@@ -6,20 +6,20 @@ This script downloads Hi-C and ChIP-seq data files required for running
 SCRIBE simulations and examples.
 
 Usage:
-    python -m pylib.download_data [--hic] [--chipseq] [--all] [--status] [--output-dir DIR]
+    python -m scribe.download_data [--hic] [--chipseq] [--all] [--status] [--output-dir DIR]
 
 Examples:
     # Check which data files are available
-    python -m pylib.download_data --status
+    python -m scribe.download_data --status
 
     # Download all data (Hi-C + ChIP-seq, ~36 GB total)
-    python -m pylib.download_data --all
+    python -m scribe.download_data --all
 
     # Download Hi-C data only (~29 GB)
-    python -m pylib.download_data --hic
+    python -m scribe.download_data --hic
 
     # Download ChIP-seq data only (~6.8 GB)
-    python -m pylib.download_data --chipseq
+    python -m scribe.download_data --chipseq
 
 Note:
     Data files are large (several GB). Ensure you have sufficient disk space.
@@ -37,7 +37,7 @@ from pathlib import Path
 import requests
 from tqdm import tqdm
 
-from pylib.paths import get_data_dir
+from scribe.paths import get_data_dir
 
 # =============================================================================
 # Data file registry
@@ -154,7 +154,7 @@ def print_manual_instructions():
         print(f"  Size: ~{info['size_gb']} GB")
         print(f"  Destination: {data_dir / 'hic' / name / info['filename']}")
         if info.get("url"):
-            print("  Auto-download: python -m pylib.download_data --hic")
+            print("  Auto-download: python -m scribe.download_data --hic")
 
     print("\n" + "-" * 70)
     print("ChIP-seq Data")
@@ -164,7 +164,7 @@ def print_manual_instructions():
         marks = list(info.get("files", {}).keys())
         print(f"  Marks: {', '.join(marks)}")
         print(f"  Destination: {data_dir / 'chipseq' / name}/")
-        print("  Auto-download: python -m pylib.download_data --chipseq")
+        print("  Auto-download: python -m scribe.download_data --chipseq")
 
     print("\n" + "-" * 70)
     print("Environment Variable")
@@ -424,7 +424,7 @@ data/
 
 ## See Also
 - SCRIBE documentation: docs/source/installation.rst
-- Run `python -m pylib.download_data --help` for more options
+- Run `python -m scribe.download_data --help` for more options
 """
 
     readme_path = data_dir / "README.md"
@@ -479,9 +479,9 @@ def main():
         check_data_status()
         print("\n" + "=" * 70)
         print("To download all data automatically:")
-        print("  python -m pylib.download_data --all")
+        print("  python -m scribe.download_data --all")
         print("\nFor more options:")
-        print("  python -m pylib.download_data --help")
+        print("  python -m scribe.download_data --help")
         print("=" * 70)
     else:
         parser.print_help()

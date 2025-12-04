@@ -13,7 +13,7 @@ if platform.system() == 'Darwin':
     extra_link_args.append('dynamic_lookup')
 
 module1 = Pybind11Extension(
-    name='pylib.pyticg',
+    name='scribe.pyticg',
     include_dirs=['include'],
     language='c++',
     sources=["src/pybind_Sim.cpp"],
@@ -22,10 +22,10 @@ module1 = Pybind11Extension(
 )
 
 setup(
-    name='pylib',
-    packages=find_packages(include=['pylib', 'pylib.*']),
+    name='scribe',
+    packages=find_packages(include=['scribe', 'scribe.*']),
     package_data={
-        'pylib': ['defaults/*.json'],
+        'scribe': ['defaults/*.json'],
     },
     include_package_data=True,
     version='0.1.3',

@@ -1,8 +1,8 @@
 import numpy as np
 
-from pylib import epilib as ep
-from pylib import utils
-from pylib.maxent import Maxent
+from scribe import epilib as ep
+from scribe import utils
+from scribe.maxent import Maxent
 
 config = utils.load_json("resources/config.json")
 with utils.cd("resources"):

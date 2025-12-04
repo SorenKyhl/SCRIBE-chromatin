@@ -27,9 +27,9 @@ from pathlib import Path
 
 import numpy as np
 
-from pylib import default
-from pylib.datapipeline import DataPipeline
-from pylib.maxent import Maxent
+from scribe import default
+from scribe.datapipeline import DataPipeline
+from scribe.maxent import Maxent
 
 
 def check_and_download_data():
@@ -53,7 +53,7 @@ def check_and_download_data():
             sys.exit(0)
 
         # Download data
-        subprocess.run([sys.executable, "-m", "pylib.download_data", "--all"], check=True)
+        subprocess.run([sys.executable, "-m", "scribe.download_data", "--all"], check=True)
 
     return pipeline
 

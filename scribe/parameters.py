@@ -2,7 +2,7 @@ import copy
 
 import numpy as np
 
-from pylib import default
+from scribe import default
 
 
 def get_config(

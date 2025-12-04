@@ -7,9 +7,9 @@ from typing import Union
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pylib import analysis, utils
-from pylib.pysim import Pysim
-from pylib.utils import cd, newton
+from scribe import analysis, utils
+from scribe.pysim import Pysim
+from scribe.utils import cd, newton
 
 plt.rcParams["figure.figsize"] = [8, 6]
 plt.rcParams.update({"font.size": 18})

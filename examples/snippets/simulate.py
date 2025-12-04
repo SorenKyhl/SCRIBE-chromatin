@@ -1,6 +1,6 @@
-from pylib import analysis
-from pylib.pysim import Pysim
-from pylib.utils import cd
+from scribe import analysis
+from scribe.pysim import Pysim
+from scribe.utils import cd
 
 sim = Pysim.from_directory("1024/iteration0")
 sim.config["load_configuration"] = False

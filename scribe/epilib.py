@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 # import palettable
 # from palettable.colorbrewer.sequential import Reds_3
-from pylib import utils
+from scribe import utils
 
 mycmap = matplotlib.colors.LinearSegmentedColormap.from_list(
     "custom", [(0, "white"), (0.3, "white"), (1, "#ff0000")], N=126

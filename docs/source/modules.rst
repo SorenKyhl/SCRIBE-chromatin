@@ -1,58 +1,58 @@
 API Reference
 =============
 
-pylib
------
+scribe
+------
 
-.. automodule:: pylib
+.. automodule:: scribe
    :members:
    :undoc-members:
    :show-inheritance:
 
-pylib.Pysim
+scribe.Pysim
 -----------
 
-.. automodule:: pylib.Pysim
+.. automodule:: scribe.Pysim
    :members:
    :undoc-members:
    :show-inheritance:
 
-pylib.Maxent
+scribe.Maxent
 ------------
 
-.. automodule:: pylib.Maxent
+.. automodule:: scribe.Maxent
    :members:
    :undoc-members:
    :show-inheritance:
 
-pylib.Pipeline
+scribe.Pipeline
 --------------
 
-.. automodule:: pylib.Pipeline
+.. automodule:: scribe.Pipeline
    :members:
    :undoc-members:
    :show-inheritance:
 
-pylib.datapipeline
+scribe.datapipeline
 ------------------
 
-.. automodule:: pylib.datapipeline
+.. automodule:: scribe.datapipeline
    :members:
    :undoc-members:
    :show-inheritance:
 
-pylib.analysis
+scribe.analysis
 --------------
 
-.. automodule:: pylib.analysis
+.. automodule:: scribe.analysis
    :members:
    :undoc-members:
    :show-inheritance:
 
-pylib.chipseqPipeline
+scribe.chipseqPipeline
 ---------------------
 
-.. automodule:: pylib.chipseqPipeline
+.. automodule:: scribe.chipseqPipeline
    :members:
    :undoc-members:
    :show-inheritance:

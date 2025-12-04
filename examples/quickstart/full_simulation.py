@@ -25,10 +25,10 @@ import sys
 
 import numpy as np
 
-from pylib import default
-from pylib.datapipeline import DataPipeline
-from pylib.plot_contactmap import plot_contactmap
-from pylib.pysim import Pysim
+from scribe import default
+from scribe.datapipeline import DataPipeline
+from scribe.plot_contactmap import plot_contactmap
+from scribe.pysim import Pysim
 
 
 def check_and_download_data():
@@ -52,7 +52,7 @@ def check_and_download_data():
             sys.exit(0)
 
         # Download data
-        subprocess.run([sys.executable, "-m", "pylib.download_data", "--all"], check=True)
+        subprocess.run([sys.executable, "-m", "scribe.download_data", "--all"], check=True)
 
     return pipeline
 
@@ -118,7 +118,7 @@ def analyze_results(sim, experimental_hic):
     # Calculate metrics
     from scipy.stats import pearsonr
 
-    from pylib.epilib import SCC
+    from scribe.epilib import SCC
 
     scc = SCC(sim.hic, experimental_hic)
     pearson_r, _ = pearsonr(sim.hic.flatten(), experimental_hic.flatten())

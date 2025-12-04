@@ -1,4 +1,4 @@
-from pylib import default, hic, pipeline
+from scribe import default, hic, pipeline
 
 """
 executes simplest maxent optimization using pipeline class and library defaults.

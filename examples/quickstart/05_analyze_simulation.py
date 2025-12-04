@@ -18,9 +18,9 @@ Output:
 import numpy as np
 from scipy.stats import pearsonr
 
-from pylib.analysis import compare_analysis, sim_analysis
-from pylib.epilib import SCC
-from pylib.pysim import Pysim
+from scribe.analysis import compare_analysis, sim_analysis
+from scribe.epilib import SCC
+from scribe.pysim import Pysim
 
 
 def main():

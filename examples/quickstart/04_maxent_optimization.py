@@ -18,8 +18,8 @@ Output:
 
 import numpy as np
 
-from pylib import default
-from pylib.maxent import Maxent
+from scribe import default
+from scribe.maxent import Maxent
 
 
 def main():

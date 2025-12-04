@@ -3,12 +3,12 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pylib import default, epilib, hic, parameters, utils
-from pylib.config import Config
-from pylib.ideal_chain import ideal_chain_simulation
-from pylib.maxent import Maxent
-from pylib.optimize import optimize_bond_length, optimize_grid_size, optimize_stiffness
-from pylib.pysim import Pysim
+from scribe import default, epilib, hic, parameters, utils
+from scribe.config import Config
+from scribe.ideal_chain import ideal_chain_simulation
+from scribe.maxent import Maxent
+from scribe.optimize import optimize_bond_length, optimize_grid_size, optimize_stiffness
+from scribe.pysim import Pysim
 
 
 def plot_stiffness_error(ideal_small, ideal_large, gthic_big, pool_fn):

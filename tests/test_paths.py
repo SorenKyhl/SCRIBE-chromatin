@@ -1,5 +1,5 @@
 """
-Unit tests for pylib.paths module.
+Unit tests for scribe.paths module.
 
 Tests cover:
 - Project root resolution
@@ -14,7 +14,7 @@ from unittest import mock
 
 import pytest
 
-from pylib.paths import get_data_dir, get_defaults_dir, get_project_root
+from scribe.paths import get_data_dir, get_defaults_dir, get_project_root
 
 
 class TestGetProjectRoot:
@@ -29,7 +29,7 @@ class TestGetProjectRoot:
         """Test that the returned path is the SCRIBE project root."""
         result = get_project_root()
         # Should contain key project files/directories
-        assert (result / "pylib").exists()
+        assert (result / "scribe").exists()
         assert (result / "README.md").exists() or (result / "setup.py").exists()
 
     def test_consistent_results(self):
@@ -100,10 +100,10 @@ class TestGetDefaultsDir:
         assert isinstance(result, Path)
 
     def test_points_to_defaults(self):
-        """Test that the path points to the defaults directory inside pylib."""
+        """Test that the path points to the defaults directory inside scribe."""
         result = get_defaults_dir()
         assert result.name == "defaults"
-        assert result.parent.name == "pylib"
+        assert result.parent.name == "scribe"
         assert result.parent.parent == get_project_root()
 
     def test_defaults_dir_exists(self):

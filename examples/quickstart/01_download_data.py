@@ -18,8 +18,8 @@ Output:
 import subprocess
 import sys
 
-from pylib import default
-from pylib.paths import get_data_dir
+from scribe import default
+from scribe.paths import get_data_dir
 
 
 def check_status():
@@ -67,7 +67,7 @@ def download_all():
         return False
 
     # Run the download
-    subprocess.run([sys.executable, "-m", "pylib.download_data", "--all"], check=True)
+    subprocess.run([sys.executable, "-m", "scribe.download_data", "--all"], check=True)
     return True
 
 
@@ -100,10 +100,10 @@ def main():
             check_status()
     else:
         print("\nTo download later, run:")
-        print("  python -m pylib.download_data --all")
+        print("  python -m scribe.download_data --all")
         print("\nOr download separately:")
-        print("  python -m pylib.download_data --hic       # Hi-C only")
-        print("  python -m pylib.download_data --chipseq   # ChIP-seq only")
+        print("  python -m scribe.download_data --hic       # Hi-C only")
+        print("  python -m scribe.download_data --chipseq   # ChIP-seq only")
 
 
 if __name__ == "__main__":

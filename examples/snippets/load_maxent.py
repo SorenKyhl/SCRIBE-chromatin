@@ -1,4 +1,4 @@
-from pylib.maxent import Maxent
+from scribe.maxent import Maxent
 
 me = Maxent.load_state("backup.pickle")
 me.set_root("newroot")

@@ -7,8 +7,8 @@ from bayes_opt import BayesianOptimization
 from scipy import optimize
 from sklearn.metrics import mean_squared_error
 
-from pylib import default, epilib, utils
-from pylib.pysim import Pysim
+from scribe import default, epilib, utils
+from scribe.pysim import Pysim
 
 """
 module for optimizing simulation parameters

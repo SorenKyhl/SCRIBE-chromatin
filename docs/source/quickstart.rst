@@ -11,14 +11,14 @@ Before running examples, download the required Hi-C and ChIP-seq data:
 .. code-block:: bash
 
    # Check what data is available/missing
-   python -m pylib.download_data --status
+   python -m scribe.download_data --status
 
    # Download all data (~36 GB: Hi-C + ChIP-seq)
-   python -m pylib.download_data --all
+   python -m scribe.download_data --all
 
    # Or download separately:
-   python -m pylib.download_data --hic        # Hi-C only (~29 GB)
-   python -m pylib.download_data --chipseq    # ChIP-seq only (~6.8 GB)
+   python -m scribe.download_data --hic        # Hi-C only (~29 GB)
+   python -m scribe.download_data --chipseq    # ChIP-seq only (~6.8 GB)
 
 Data is stored in ``~/.scribe/data/`` by default. Set ``SCRIBE_DATA_DIR`` to use a custom location.
 
@@ -29,7 +29,7 @@ The high-level ``DataPipeline`` loads data by cell type, automatically finding f
 
 .. code-block:: python
 
-   from pylib.datapipeline import DataPipeline
+   from scribe.datapipeline import DataPipeline
    import numpy as np
 
    # Create pipeline for HCT116 cell line data
@@ -64,7 +64,7 @@ For custom file paths or fine-grained control, use ``DataLoader``:
 
 .. code-block:: python
 
-   from pylib.dataloader import DataLoader
+   from scribe.dataloader import DataLoader
    import numpy as np
 
    # Define genomic region explicitly
@@ -90,9 +90,9 @@ Run a forward simulation using epigenetic sequences and interaction parameters (
 
 .. code-block:: python
 
-   from pylib.pysim import Pysim
-   from pylib import default
-   from pylib.plot_contactmap import plot_contactmap
+   from scribe.pysim import Pysim
+   from scribe import default
+   from scribe.plot_contactmap import plot_contactmap
    import numpy as np
 
    # Load default configuration (contains interaction parameters χ)
@@ -118,8 +118,8 @@ Optimize the Flory-Huggins χ interaction parameters to match experimental Hi-C 
 
 .. code-block:: python
 
-   from pylib.maxent import Maxent
-   from pylib import default
+   from scribe.maxent import Maxent
+   from scribe import default
 
    # Load experimental Hi-C contact map (training target)
    hic_experimental = np.load("experimental_hic.npy")
@@ -150,9 +150,9 @@ The Pipeline class is a high-level wrapper for spawning multiple maximum entropy
 
 .. code-block:: python
 
-   from pylib.pipeline import Pipeline
-   from pylib import epilib as ep
-   from pylib import default
+   from scribe.pipeline import Pipeline
+   from scribe import epilib as ep
+   from scribe import default
    import functools
    import numpy as np
 

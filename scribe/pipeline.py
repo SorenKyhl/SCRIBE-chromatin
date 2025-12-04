@@ -8,8 +8,8 @@ plt.rcParams["figure.figsize"] = [8, 6]
 plt.rcParams.update({"font.size": 18})
 
 
-import pylib.maxent as me
-from pylib import epilib as ep
+import scribe.maxent as me
+from scribe import epilib as ep
 
 
 class Pipeline:

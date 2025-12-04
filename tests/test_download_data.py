@@ -1,5 +1,5 @@
 """
-Unit tests for pylib.download_data module.
+Unit tests for scribe.download_data module.
 
 Tests cover:
 - Data directory resolution
@@ -15,14 +15,14 @@ from unittest import mock
 
 import pytest
 
-from pylib.download_data import (
+from scribe.download_data import (
     CHIPSEQ_FILES,
     HIC_FILES,
     check_data_status,
     download_file,
     setup_directory_structure,
 )
-from pylib.paths import get_data_dir
+from scribe.paths import get_data_dir
 
 # =============================================================================
 # Test fixtures
@@ -205,7 +205,7 @@ class TestDownloadFile:
         mock_response.iter_content.return_value = []
         mock_response.raise_for_status = mock.Mock()
 
-        with mock.patch("pylib.download_data.requests.get", return_value=mock_response):
+        with mock.patch("scribe.download_data.requests.get", return_value=mock_response):
             download_file("http://example.com/file.txt", dest_path)
 
         assert dest_path.parent.exists()
@@ -214,7 +214,7 @@ class TestDownloadFile:
         """Test that download errors are handled gracefully."""
         dest_path = temp_data_dir / "file.txt"
 
-        with mock.patch("pylib.download_data.requests.get", side_effect=Exception("Network error")):
+        with mock.patch("scribe.download_data.requests.get", side_effect=Exception("Network error")):
             result = download_file("http://example.com/file.txt", dest_path)
 
         assert result is False
@@ -231,7 +231,7 @@ class TestDownloadFile:
         mock_response.iter_content.return_value = [test_content]
         mock_response.raise_for_status = mock.Mock()
 
-        with mock.patch("pylib.download_data.requests.get", return_value=mock_response):
+        with mock.patch("scribe.download_data.requests.get", return_value=mock_response):
             result = download_file("http://example.com/file.txt", dest_path)
 
         assert result is True

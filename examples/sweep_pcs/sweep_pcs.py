@@ -2,9 +2,9 @@ import functools
 
 import numpy as np
 
-from pylib import default
-from pylib import epilib as ep
-from pylib.pipeline import Pipeline
+from scribe import default
+from scribe import epilib as ep
+from scribe.pipeline import Pipeline
 
 """
 optimizes chromosome structure for HCT116-chr2-0Mbp-102.4Mbp using 1024 beads.

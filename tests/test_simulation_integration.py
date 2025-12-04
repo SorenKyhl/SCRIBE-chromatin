@@ -1,7 +1,7 @@
 """Integration tests for simulation pooling consistency.
 
 These tests verify that the C++ simulation's contact map pooling matches
-the Python pooling functions in pylib.hic.
+the Python pooling functions in scribe.hic.
 
 These tests require the pyticg C++ extension to be built (run `make all`).
 They are automatically skipped if the extension is not available.
@@ -15,8 +15,8 @@ import pytest
 
 # Check if simulation engine is available
 try:
-    from pylib import epilib, hic
-    from pylib.ideal_chain import ideal_chain_simulation
+    from scribe import epilib, hic
+    from scribe.ideal_chain import ideal_chain_simulation
 
     HAS_SIMULATION = True
 except ImportError:

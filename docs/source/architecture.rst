@@ -10,7 +10,7 @@ Directory Structure
 
    SCRIBE-chromatin/
    ├── src/                 # C++ simulation engine (TICG core)
-   ├── pylib/               # Python interface and analysis tools
+   ├── scribe/               # Python interface and analysis tools
    │   ├── pysim.py         # High-level simulation interface
    │   ├── maxent.py        # Maximum entropy optimizer
    │   ├── pipeline.py      # End-to-end workflow automation
@@ -67,7 +67,7 @@ The simulation engine implements the Theoretically Informed Coarse Grain (TICG) 
 
 The engine is compiled into a Python extension module (``pyticg``) using pybind11.
 
-Python API (``pylib/``)
+Python API (``scribe/``)
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 **Pysim** - High-level simulation interface
@@ -112,6 +112,6 @@ Default configurations are provided in ``defaults/`` and can be loaded via:
 
 .. code-block:: python
 
-   from pylib import default
+   from scribe import default
    config = default.config.copy()
    params = default.params.copy()

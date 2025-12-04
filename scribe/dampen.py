@@ -10,9 +10,9 @@ the parameters converge more smoothly to the optimal values.
 
 import numpy as np
 
-from pylib import epilib as ep
-from pylib import utils
-from pylib.maxent import Maxent
+from scribe import epilib as ep
+from scribe import utils
+from scribe.maxent import Maxent
 
 
 def dampen(gamma, me_path="me-1024", it=0):

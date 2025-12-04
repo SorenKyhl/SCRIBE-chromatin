@@ -8,7 +8,7 @@ This script demonstrates how to:
 3. Save data for simulation
 
 Prerequisites:
-    - Download data first: python -m pylib.download_data --all
+    - Download data first: python -m scribe.download_data --all
 
 Output:
     - chipseq_sequences.npy: Polymer sequences from ChIP-seq
@@ -17,7 +17,7 @@ Output:
 
 import numpy as np
 
-from pylib.datapipeline import DataPipeline
+from scribe.datapipeline import DataPipeline
 
 
 def main():
@@ -34,11 +34,11 @@ def main():
     print("Data status:", status)
 
     if not status["hic"]["available"]:
-        print("\nHi-C data not found. Run: python -m pylib.download_data --hic")
+        print("\nHi-C data not found. Run: python -m scribe.download_data --hic")
         return
 
     if not status["chipseq"]["available"]:
-        print("\nChIP-seq data not found. Run: python -m pylib.download_data --chipseq")
+        print("\nChIP-seq data not found. Run: python -m scribe.download_data --chipseq")
         return
 
     # Load Hi-C contact map (with automatic pooling and caching)

@@ -23,7 +23,7 @@ import numpy as np
 import scipy.ndimage as ndimage
 from skimage.measure import block_reduce
 
-from pylib import default, epilib
+from scribe import default, epilib
 
 
 def pool(inp, factor, fn=np.nansum, normalize=True):

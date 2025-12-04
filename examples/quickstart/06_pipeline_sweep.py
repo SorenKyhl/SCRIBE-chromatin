@@ -18,9 +18,9 @@ import functools
 
 import numpy as np
 
-from pylib import default
-from pylib import epilib as ep
-from pylib.pipeline import Pipeline
+from scribe import default
+from scribe import epilib as ep
+from scribe.pipeline import Pipeline
 
 
 def main():

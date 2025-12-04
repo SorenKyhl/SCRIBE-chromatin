@@ -1,4 +1,4 @@
-from pylib.pysim import Pysim
+from scribe.pysim import Pysim
 
 
 def reproduce():

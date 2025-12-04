@@ -11,7 +11,7 @@ Configuration priority for data directory:
 
 To set up data files, either:
     1. Set SCRIBE_DATA_DIR to point to your existing data
-    2. Run: python -m pylib.download_data --setup
+    2. Run: python -m scribe.download_data --setup
 
 Expected data directory structure:
     $SCRIBE_DATA_DIR/
@@ -28,7 +28,7 @@ import json
 import logging
 from pathlib import Path
 
-from pylib.paths import get_data_dir, get_defaults_dir
+from scribe.paths import get_data_dir, get_defaults_dir
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ def load_default_config(name: str = "config") -> dict:
 
     Args:
         name: Name of the config file (without .json extension).
-              Default is "config" which loads pylib/defaults/config.json
+              Default is "config" which loads scribe/defaults/config.json
 
     Returns:
         Configuration dictionary
@@ -242,7 +242,7 @@ def _get_chipseq_pipeline():
     """Get the default ChIP-seq processing pipeline (lazy loaded)."""
     global _chipseq_pipeline
     if _chipseq_pipeline is None:
-        from pylib.chipseqPipeline import ChipseqPipeline, Normalize, Sigmoid, Smooth
+        from scribe.chipseqPipeline import ChipseqPipeline, Normalize, Sigmoid, Smooth
 
         _chipseq_pipeline = ChipseqPipeline([Smooth(), Normalize(), Sigmoid()])
     return _chipseq_pipeline
@@ -252,7 +252,7 @@ def _get_data_pipeline():
     """Get the default data loader (lazy loaded)."""
     global _data_pipeline
     if _data_pipeline is None:
-        from pylib.dataloader import DataLoader
+        from scribe.dataloader import DataLoader
 
         _data_pipeline = DataLoader(res, chrom, start, end, size)
     return _data_pipeline

@@ -1,5 +1,5 @@
 """
-Unit tests for pylib.default module.
+Unit tests for scribe.default module.
 
 Tests cover:
 - Configuration loading
@@ -15,8 +15,8 @@ from unittest import mock
 
 import pytest
 
-from pylib import default
-from pylib.default import (
+from scribe import default
+from scribe.default import (
     get_cached_hic,
     get_chipseq_dir,
     get_config,

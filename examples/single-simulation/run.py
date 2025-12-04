@@ -1,8 +1,8 @@
 import numpy as np
 
-from pylib import default, epilib
-from pylib.plot_contactmap import plot_contactmap
-from pylib.pysim import Pysim
+from scribe import default, epilib
+from scribe.plot_contactmap import plot_contactmap
+from scribe.pysim import Pysim
 
 # load simulation configuration file
 config = default.config

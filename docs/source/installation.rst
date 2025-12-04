@@ -29,7 +29,7 @@ The easiest way to install SCRIBE is using conda:
 This command does two things:
 
 1. **Compiles the C++ simulation engine** (``src/``) into a Python extension module (``pyticg``) using pybind11
-2. **Installs the Python API** (``pylib/``) which provides high-level interfaces for running simulations and maximum entropy optimization
+2. **Installs the Python API** (``scribe/``) which provides high-level interfaces for running simulations and maximum entropy optimization
 
 Partial Builds
 --------------
@@ -80,14 +80,14 @@ These data files are large and hosted externally.
 .. code-block:: bash
 
    # Check what data is available/missing
-   python -m pylib.download_data --status
+   python -m scribe.download_data --status
 
    # Download all data (~36 GB: Hi-C + ChIP-seq)
-   python -m pylib.download_data --all
+   python -m scribe.download_data --all
 
    # Or download separately:
-   python -m pylib.download_data --download   # Hi-C only (~29 GB)
-   python -m pylib.download_data --chipseq    # ChIP-seq only (~6.8 GB)
+   python -m scribe.download_data --download   # Hi-C only (~29 GB)
+   python -m scribe.download_data --chipseq    # ChIP-seq only (~6.8 GB)
 
 **Manual Download:**
 

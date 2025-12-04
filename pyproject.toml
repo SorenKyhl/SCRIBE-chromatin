@@ -62,4 +62,4 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["pylib"]
+known-first-party = ["scribe"]

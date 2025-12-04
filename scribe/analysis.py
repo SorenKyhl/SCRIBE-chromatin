@@ -17,8 +17,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pylib import energy_utils, utils
-from pylib import epilib as ep
+from scribe import energy_utils, utils
+from scribe import epilib as ep
 
 matplotlib.use("agg")
 

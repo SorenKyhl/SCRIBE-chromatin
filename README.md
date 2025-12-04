@@ -67,7 +67,7 @@ make all
 
 This command does two things:
 1. **Compiles the C++ simulation engine** (`src/`) into a Python extension module (`pyticg`) using pybind11
-2. **Installs the Python API** (`pylib/`) which provides high-level interfaces for running simulations and maximum entropy optimization
+2. **Installs the Python API** (`scribe/`) which provides high-level interfaces for running simulations and maximum entropy optimization
 
 ### Data Setup
 
@@ -85,14 +85,14 @@ export SCRIBE_DATA_DIR=/path/to/your/data
 **Quick Setup (Recommended):**
 ```bash
 # Check what data is available/missing
-python -m pylib.download_data --status
+python -m scribe.download_data --status
 
 # Download all data (~36 GB: Hi-C + ChIP-seq)
-python -m pylib.download_data --all
+python -m scribe.download_data --all
 
 # Or download separately:
-python -m pylib.download_data --hic       # Hi-C only (~29 GB)
-python -m pylib.download_data --chipseq   # ChIP-seq only (~6.8 GB)
+python -m scribe.download_data --hic       # Hi-C only (~29 GB)
+python -m scribe.download_data --chipseq   # ChIP-seq only (~6.8 GB)
 ```
 
 ## Quick Start
@@ -102,7 +102,7 @@ python -m pylib.download_data --chipseq   # ChIP-seq only (~6.8 GB)
 The high-level `DataPipeline` loads data by cell type, automatically finding files in `~/.scribe/data/`:
 
 ```python
-from pylib.datapipeline import DataPipeline
+from scribe.datapipeline import DataPipeline
 import numpy as np
 
 # Create pipeline for HCT116 cell line data
@@ -135,7 +135,7 @@ np.save("experimental_hic.npy", hic)
 For custom file paths or fine-grained control, use `DataLoader`:
 
 ```python
-from pylib.dataloader import DataLoader
+from scribe.dataloader import DataLoader
 import numpy as np
 
 # Define genomic region explicitly
@@ -159,9 +159,9 @@ seq_array = np.stack(list(sequences.values()), axis=1)
 Run a forward simulation using epigenetic sequences and interaction parameters (χ) to generate an ensemble of 3D genome structures:
 
 ```python
-from pylib.pysim import Pysim
-from pylib import default
-from pylib.plot_contactmap import plot_contactmap
+from scribe.pysim import Pysim
+from scribe import default
+from scribe.plot_contactmap import plot_contactmap
 import numpy as np
 
 # Load default configuration (contains interaction parameters χ)
@@ -185,8 +185,8 @@ plot_contactmap("output")
 Optimize the Flory-Huggins χ interaction parameters to match experimental Hi-C contact maps. The maximum entropy framework iteratively runs simulations and updates χ until the predicted contact frequencies match the experimental data:
 
 ```python
-from pylib.maxent import Maxent
-from pylib import default
+from scribe.maxent import Maxent
+from scribe import default
 
 # Load experimental Hi-C contact map (training target)
 hic_experimental = np.load("experimental_hic.npy")
@@ -215,9 +215,9 @@ me.fit()
 The Pipeline class is a high-level wrapper for spawning multiple maximum entropy training runs. Use it to systematically compare different sequence representations derived from Hi-C data (e.g., varying the number of principal components):
 
 ```python
-from pylib.pipeline import Pipeline
-from pylib import epilib as ep
-from pylib import default
+from scribe.pipeline import Pipeline
+from scribe import epilib as ep
+from scribe import default
 import functools
 import numpy as np
 
@@ -244,9 +244,9 @@ for k in range(1, 11):
 Analyze simulation results and compare predicted contact maps to experimental Hi-C:
 
 ```python
-from pylib.pysim import Pysim
-from pylib.analysis import sim_analysis, compare_analysis
-from pylib.epilib import SCC
+from scribe.pysim import Pysim
+from scribe.analysis import sim_analysis, compare_analysis
+from scribe.epilib import SCC
 from scipy.stats import pearsonr
 import numpy as np
 
@@ -272,7 +272,7 @@ print(f"SCC: {scc:.3f}, Pearson r: {pearson_r:.3f}")
 Analyze convergence and learned parameters from a completed maximum entropy optimization:
 
 ```python
-from pylib.maxent import Maxent
+from scribe.maxent import Maxent
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -304,7 +304,7 @@ plt.savefig("training_progress.png")
 ```
 SCRIBE-chromatin/
 ├── src/                 # C++ simulation engine (TICG core)
-├── pylib/               # Python interface and analysis tools
+├── scribe/               # Python interface and analysis tools
 │   ├── pysim.py         # High-level simulation interface
 │   ├── maxent.py        # Maximum entropy optimizer
 │   ├── pipeline.py      # End-to-end workflow automation

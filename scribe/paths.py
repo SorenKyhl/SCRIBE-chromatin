@@ -2,7 +2,7 @@
 Path resolution for SCRIBE.
 
 This module provides path utilities for locating project files and data directories.
-It has no dependencies on other pylib modules to avoid circular imports.
+It has no dependencies on other scribe modules to avoid circular imports.
 
 Configuration priority for data directory:
     1. Explicit output_dir parameter (if provided)
@@ -44,5 +44,5 @@ def get_data_dir(output_dir: str | None = None) -> Path:
 
 
 def get_defaults_dir() -> Path:
-    """Get the directory containing default configuration files (inside pylib)."""
+    """Get the directory containing default configuration files (inside scribe package)."""
     return Path(__file__).parent / "defaults"

@@ -10,9 +10,9 @@ Analyze simulation results and compare predicted contact maps to experimental Hi
 
 .. code-block:: python
 
-   from pylib.pysim import Pysim
-   from pylib.analysis import sim_analysis, compare_analysis
-   from pylib.epilib import SCC
+   from scribe.pysim import Pysim
+   from scribe.analysis import sim_analysis, compare_analysis
+   from scribe.epilib import SCC
    from scipy.stats import pearsonr
    import numpy as np
 
@@ -56,7 +56,7 @@ Analyze convergence and learned parameters from a completed maximum entropy opti
 
 .. code-block:: python
 
-   from pylib.maxent import Maxent
+   from scribe.maxent import Maxent
    import numpy as np
    import matplotlib.pyplot as plt
 

@@ -17,9 +17,9 @@ Output:
 
 import numpy as np
 
-from pylib import default
-from pylib.plot_contactmap import plot_contactmap
-from pylib.pysim import Pysim
+from scribe import default
+from scribe.plot_contactmap import plot_contactmap
+from scribe.pysim import Pysim
 
 
 def main():

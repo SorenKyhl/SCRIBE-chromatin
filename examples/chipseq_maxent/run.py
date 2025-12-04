@@ -2,10 +2,10 @@ from pathlib import Path
 
 import numpy as np
 
-import pylib.default
-from pylib import epilib
-from pylib.datapipeline import DataPipeline
-from pylib.maxent import Maxent
+import scribe.default
+from scribe import epilib
+from scribe.datapipeline import DataPipeline
+from scribe.maxent import Maxent
 
 encode_seqs = ["H3K4me3", "H3K27ac", "H3K27me3", "H3K4me1", "H3K36me3", "H3K9me3"]
 
@@ -35,14 +35,14 @@ def chip_maxent(chrom, wig_method, encode_only):
         sequences = np.array(seqs)
     else:
         sequences = np.array(list(sequences.values()))
-    sequences = np.array([pylib.default.chipseq_pipeline.fit(seq) for seq in sequences])
+    sequences = np.array([scribe.default.chipseq_pipeline.fit(seq) for seq in sequences])
 
     # set up config, params, goals
-    config = pylib.default.config
+    config = scribe.default.config
     # config = utils.load_json("config.json")
     goals = epilib.get_goals(gthic, sequences, config)
 
-    params = pylib.default.params
+    params = scribe.default.params
     params["equilib_sweeps"] = 10000
     params["production_sweeps"] = 50000
     params["trust_region"] = 1000

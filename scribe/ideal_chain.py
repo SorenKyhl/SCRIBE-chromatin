@@ -1,7 +1,7 @@
 import sys
 
-from pylib import parameters
-from pylib.pysim import Pysim
+from scribe import parameters
+from scribe.pysim import Pysim
 
 """ ideal_chain
 module for running ideal chain simulations

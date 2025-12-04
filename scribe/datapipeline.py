@@ -5,16 +5,16 @@ This module provides the DataPipeline class for loading Hi-C and ChIP-seq
 data by cell type name, automatically resolving file paths from the
 ~/.scribe/data/ database.
 
-For low-level file loading, use DataLoader from pylib.dataloader.
+For low-level file loading, use DataLoader from scribe.dataloader.
 """
 
 from pathlib import Path
 
 import numpy as np
 
-from pylib import hic as hiclib
-from pylib.dataloader import DataLoader
-from pylib.paths import get_data_dir
+from scribe import hic as hiclib
+from scribe.dataloader import DataLoader
+from scribe.paths import get_data_dir
 
 
 class DataPipeline:
@@ -266,7 +266,7 @@ class DataPipeline:
 
         # Apply processing pipeline
         if apply_processing:
-            from pylib.chipseqPipeline import ChipseqPipeline, Normalize, Sigmoid, Smooth
+            from scribe.chipseqPipeline import ChipseqPipeline, Normalize, Sigmoid, Smooth
 
             pipeline = ChipseqPipeline([Smooth(), Normalize(), Sigmoid()])
             seqs_processed = {}
@@ -304,7 +304,7 @@ class DataPipeline:
         Returns:
             Array of shape (2k, nbeads)
         """
-        from pylib import epilib
+        from scribe import epilib
 
         # Load Hi-C at high resolution
         hic_path = self._get_hic_path()

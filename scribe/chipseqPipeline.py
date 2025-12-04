@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.ndimage
 
-from pylib import epilib
+from scribe import epilib
 
 
 class ChipseqPipeline:

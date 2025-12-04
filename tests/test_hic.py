@@ -1,9 +1,9 @@
-"""Tests for pylib.hic module - Hi-C manipulation functions."""
+"""Tests for scribe.hic module - Hi-C manipulation functions."""
 
 import numpy as np
 import pytest
 
-from pylib import hic
+from scribe import hic
 
 
 class TestPool:
