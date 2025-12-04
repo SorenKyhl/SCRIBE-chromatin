@@ -68,9 +68,9 @@ The simulation engine implements the Theoretically Informed Coarse Grain (TICG) 
 The engine is compiled into a Python extension module (``pyticg``) using pybind11.
 
 Python API (``scribe/``)
-^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
-**Pysim** - High-level simulation interface
+**pysim** - High-level simulation interface
 
 - Manages simulation setup and configuration
 - Handles file I/O for coordinates, contact maps, and parameters
