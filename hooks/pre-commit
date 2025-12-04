@@ -1,0 +1,6 @@
+#!/bin/bash
+set -e
+
+# Run format and lint checks before commit
+make format
+make lint
