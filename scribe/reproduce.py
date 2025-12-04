@@ -1,4 +1,4 @@
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 
 
 def reproduce():
@@ -9,7 +9,7 @@ def reproduce():
     - config.json["bead_type_filenames"]
     """
 
-    sim = Pysim.from_directory(".")
+    sim = ScribeSim.from_directory(".")
     sim.run("reproduce-simulation")
 
 

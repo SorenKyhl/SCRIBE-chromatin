@@ -14,13 +14,9 @@ from scribe.utils import cat, cd, copy_last_snapshot
 PathLike = Union[Path, str]
 ArrayLike = Union[list, np.ndarray]
 
-"""
-pysim
-"""
 
-
-class Pysim:
-    """wrapper around pyticg"""
+class ScribeSim:
+    """High-level simulation interface wrapping the TICG engine."""
 
     def __init__(
         self,
@@ -289,7 +285,7 @@ class Pysim:
             contact_files, output_file=self.root / "production_out/contacts.txt"
         )
 
-        production = Pysim(self.root / "production_out", self.config, self.seqs, mkdir=False)
+        production = ScribeSim(self.root / "production_out", self.config, self.seqs, mkdir=False)
         production.setup()  # save config, seqs to production_out
 
         # TODO: add delete old files option

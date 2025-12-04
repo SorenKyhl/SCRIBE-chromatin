@@ -19,7 +19,7 @@ import numpy as np
 
 from scribe import default
 from scribe.plot_contactmap import plot_contactmap
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 
 
 def main():
@@ -38,7 +38,7 @@ def main():
     print(f"Config nbeads: {config.get('nbeads', 'not set')}")
 
     # Create simulation: sequences define bead identities, config defines χ parameters
-    sim = Pysim(root="output", config=config, seqs=sequences)
+    sim = ScribeSim(root="output", config=config, seqs=sequences)
 
     # Run equilibration + production to generate ensemble of 3D structures
     print("Running simulation...")

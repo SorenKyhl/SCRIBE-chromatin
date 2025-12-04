@@ -2,7 +2,7 @@ import numpy as np
 
 from scribe import default, epilib
 from scribe.plot_contactmap import plot_contactmap
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 
 # load simulation configuration file
 config = default.config
@@ -22,7 +22,7 @@ with utils.cd(dir_containing_seqs):
 """
 
 # construct simulation object
-sim = Pysim(root=".", config=config, seqs=seqs, mkdir=False)
+sim = ScribeSim(root=".", config=config, seqs=seqs, mkdir=False)
 
 # run single short production simulation
 sim.run("output_dir")  # if output_dir is none, defaults to "data_out"

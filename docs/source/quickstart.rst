@@ -90,7 +90,7 @@ Run a forward simulation using epigenetic sequences and interaction parameters (
 
 .. code-block:: python
 
-   from scribe.pysim import Pysim
+   from scribe.scribe_sim import ScribeSim
    from scribe import default
    from scribe.plot_contactmap import plot_contactmap
    import numpy as np
@@ -102,7 +102,7 @@ Run a forward simulation using epigenetic sequences and interaction parameters (
    sequences = np.load("chipseq_sequences.npy")
 
    # Create simulation: sequences define bead identities, config defines χ parameters
-   sim = Pysim(root="output", config=config, seqs=sequences)
+   sim = ScribeSim(root="output", config=config, seqs=sequences)
 
    # Run equilibration + production to generate ensemble of 3D structures
    sim.run_eq(eq_sweeps=10000, prod_sweeps=50000)

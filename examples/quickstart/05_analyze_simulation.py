@@ -20,13 +20,13 @@ from scipy.stats import pearsonr
 
 from scribe.analysis import compare_analysis, sim_analysis
 from scribe.epilib import SCC
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 
 
 def main():
     # Load a completed simulation
     try:
-        sim = Pysim(root="output", load=True)
+        sim = ScribeSim(root="output", load=True)
     except Exception as e:
         print(f"Could not load simulation from 'output/': {e}")
         print("Run 03_run_simulation.py first.")

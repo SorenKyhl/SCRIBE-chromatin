@@ -1,8 +1,8 @@
 from scribe import analysis
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 from scribe.utils import cd
 
-sim = Pysim.from_directory("1024/iteration0")
+sim = ScribeSim.from_directory("1024/iteration0")
 sim.config["load_configuration"] = False
 sim.config["grid_size"] = 500
 

@@ -10,14 +10,14 @@ Analyze simulation results and compare predicted contact maps to experimental Hi
 
 .. code-block:: python
 
-   from scribe.pysim import Pysim
+   from scribe.scribe_sim import ScribeSim
    from scribe.analysis import sim_analysis, compare_analysis
    from scribe.epilib import SCC
    from scipy.stats import pearsonr
    import numpy as np
 
    # Load a completed simulation
-   sim = Pysim(root="output", load=True)
+   sim = ScribeSim(root="output", load=True)
 
    # Basic analysis: energy convergence, contact map visualization
    sim_analysis(sim)

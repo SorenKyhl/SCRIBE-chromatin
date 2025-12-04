@@ -8,7 +8,7 @@ from scribe.config import Config
 from scribe.ideal_chain import ideal_chain_simulation
 from scribe.maxent import Maxent
 from scribe.optimize import optimize_bond_length, optimize_grid_size, optimize_stiffness
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 
 
 def plot_stiffness_error(ideal_small, ideal_large, gthic_big, pool_fn):
@@ -298,7 +298,7 @@ def scaleup(
         config_large["diag_chis"][1] = 0
 
     sim_large_root = f"final-{nbeads_large}"
-    sim_large = Pysim(sim_large_root, config_large, seqs_large, gthic=gthic_large)
+    sim_large = ScribeSim(sim_large_root, config_large, seqs_large, gthic=gthic_large)
     sim_large.run_eq(10000, 50000, 7)
 
 

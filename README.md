@@ -161,7 +161,7 @@ seq_array = np.stack(list(sequences.values()), axis=1)
 Run a forward simulation using epigenetic sequences and interaction parameters (χ) to generate an ensemble of 3D genome structures:
 
 ```python
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 from scribe import default
 from scribe.plot_contactmap import plot_contactmap
 import numpy as np
@@ -173,7 +173,7 @@ config = default.config.copy()
 sequences = np.load("chipseq_sequences.npy")
 
 # Create simulation: sequences define bead identities, config defines χ parameters
-sim = Pysim(root="output", config=config, seqs=sequences)
+sim = ScribeSim(root="output", config=config, seqs=sequences)
 
 # Run equilibration + production to generate ensemble of 3D structures
 sim.run_eq(eq_sweeps=10000, prod_sweeps=50000)
@@ -246,14 +246,14 @@ for k in range(1, 11):
 Analyze simulation results and compare predicted contact maps to experimental Hi-C:
 
 ```python
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 from scribe.analysis import sim_analysis, compare_analysis
 from scribe.epilib import SCC
 from scipy.stats import pearsonr
 import numpy as np
 
 # Load a completed simulation
-sim = Pysim(root="output", load=True)
+sim = ScribeSim(root="output", load=True)
 
 # Basic analysis: energy convergence, contact map visualization
 sim_analysis(sim)
@@ -307,7 +307,7 @@ plt.savefig("training_progress.png")
 SCRIBE-chromatin/
 ├── src/                 # C++ simulation engine (TICG core)
 ├── scribe/               # Python interface and analysis tools
-│   ├── pysim.py         # High-level simulation interface
+│   ├── scribe_sim.py         # High-level simulation interface
 │   ├── maxent.py        # Maximum entropy optimizer
 │   ├── pipeline.py      # End-to-end workflow automation
 │   ├── datapipeline.py  # High-level data loading by cell type
@@ -324,7 +324,7 @@ SCRIBE-chromatin/
 | Module | Level | Description |
 |--------|-------|-------------|
 | `pyticg` | Low | C++ extension (pybind11 wrapper) |
-| `pysim.Pysim` | High | Simulation setup, execution, and I/O |
+| `scribe_sim.ScribeSim` | High | Simulation setup, execution, and I/O |
 | `maxent.Maxent` | Low | Core maximum entropy optimization |
 | `pipeline.Pipeline` | High | ChIP-seq processing + optimization workflow |
 | `datapipeline.DataPipeline` | High | Load data by cell type from ~/.scribe/data/ |

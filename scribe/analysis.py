@@ -38,7 +38,7 @@ def sim_analysis(sim):
     - O/E (observed/expected) ratio
 
     Args:
-        sim: Simulation object (epilib.Sim or pysim.Pysim)
+        sim: Simulation object (epilib.Sim or scribe_sim.ScribeSim)
 
     Outputs:
         Saves PNG files to current directory:

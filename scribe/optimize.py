@@ -8,7 +8,7 @@ from scipy import optimize
 from sklearn.metrics import mean_squared_error
 
 from scribe import default, epilib, utils
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 
 """
 module for optimizing simulation parameters
@@ -41,7 +41,7 @@ def nearest_neighbor_contact_error(grid_bond_ratio, sim_engine, gthic):
 
     Args:
         grid_bond_ratio [float]: grid size expressed as a ratio of the bond length.
-        sim_engine [Pysim]: object to call simulation runs
+        sim_engine [ScribeSim]: object to call simulation runs
         gthic [ndarray]: ground truth hic
 
     Returns:
@@ -74,7 +74,7 @@ def nearest_neighbor_contact_error_bond(grid_bond_ratio, sim_engine, gthic):
 
     Args:
         grid_bond_ratio [float]: grid size expressed as a ratio of the bond length.
-        sim_engine [Pysim]: object to call simulation runs
+        sim_engine [ScribeSim]: object to call simulation runs
         gthic [ndarray]: ground truth hic
 
     Returns:
@@ -118,7 +118,7 @@ def optimize_grid_size(config, gthic, low_bound=0.5, high_bound=1.5, root="optim
     config["nonbonded_on"] = False
     config["load_bead_types"] = False
 
-    sim_engine = Pysim(root, config, seqs=None)
+    sim_engine = ScribeSim(root, config, seqs=None)
 
     try:
         result = optimize.brentq(
@@ -163,7 +163,7 @@ def optimize_bond_length(config, gthic, low_bound=0.5, high_bound=1.5, root="opt
     config["nonbonded_on"] = False
     config["load_bead_types"] = False
 
-    sim_engine = Pysim(root, config, seqs=None)
+    sim_engine = ScribeSim(root, config, seqs=None)
 
     try:
         result = optimize.brentq(
@@ -225,7 +225,7 @@ def simulate_stiffness_error(k_angle, sim_engine, gthic, method):
 
     Args:
         k_angle [float]: grid size expressed as a ratio of the bond length.
-        sim_engine [Pysim]: object to call simulation runs
+        sim_engine [ScribeSim]: object to call simulation runs
         gthic [ndarray]: ground truth hic
 
     Returns:
@@ -273,7 +273,7 @@ def optimize_stiffness(
     config["nonbonded_on"] = False
     config["load_bead_types"] = False
 
-    sim_engine = Pysim(root, config, seqs=None, gthic=gthic)
+    sim_engine = ScribeSim(root, config, seqs=None, gthic=gthic)
 
     if method == "bayes":
         pbounds = {"k_angle": (low_bound, high_bound)}

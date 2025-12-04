@@ -1,10 +1,10 @@
 import logging
 import sys
 
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 
 if __name__ == "__main__":
-    sim = Pysim.from_directory(".")
+    sim = ScribeSim.from_directory(".")
     if len(sys.argv) == 1:
         sim.run_eq(10000, 50000, 7)
     if len(sys.argv) == 2:

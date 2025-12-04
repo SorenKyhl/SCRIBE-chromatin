@@ -9,10 +9,10 @@ scribe
    :undoc-members:
    :show-inheritance:
 
-scribe.pysim
-------------
+scribe.scribe_sim
+-----------------
 
-.. automodule:: scribe.pysim
+.. automodule:: scribe.scribe_sim
    :members:
    :undoc-members:
    :show-inheritance:

@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from scribe import analysis, utils
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 from scribe.utils import cd, newton
 
 plt.rcParams["figure.figsize"] = [8, 6]
@@ -63,7 +63,7 @@ class Maxent:
             # this only pertains to plaid settings in the default config
             self.update_default_config()
 
-        self.defaultsim = Pysim(self.resources, self.config, self.seqs, mkdir=False)
+        self.defaultsim = ScribeSim(self.resources, self.config, self.seqs, mkdir=False)
         if initial_chis is None:
             self.initial_chis = self.defaultsim.flatten_chis()
         else:
@@ -162,7 +162,7 @@ class Maxent:
         for it in range(self.params["iterations"]):
             self.save_state()
 
-            sim = Pysim(
+            sim = ScribeSim(
                 root=self.root / f"iteration{it}",
                 config=self.defaultsim.config,
                 seqs=self.defaultsim.seqs,

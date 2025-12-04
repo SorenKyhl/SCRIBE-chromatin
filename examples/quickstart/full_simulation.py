@@ -28,7 +28,7 @@ import numpy as np
 from scribe import default
 from scribe.datapipeline import DataPipeline
 from scribe.plot_contactmap import plot_contactmap
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 
 
 def check_and_download_data():
@@ -95,7 +95,7 @@ def run_simulation(sequences):
     print(f"  - Beads: {config.get('nbeads', sequences.shape[0])}")
     print(f"  - Sequence types: {sequences.shape[1]}")
 
-    sim = Pysim(root="simulation_output", config=config, seqs=sequences)
+    sim = ScribeSim(root="simulation_output", config=config, seqs=sequences)
 
     print("\nRunning simulation...")
     print("  - Equilibration: 10,000 sweeps")

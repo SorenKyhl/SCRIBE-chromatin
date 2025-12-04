@@ -1,7 +1,7 @@
 import sys
 
 from scribe import parameters
-from scribe.pysim import Pysim
+from scribe.scribe_sim import ScribeSim
 
 """ ideal_chain
 module for running ideal chain simulations
@@ -16,7 +16,7 @@ def ideal_chain_simulation(nbeads: int, grid_bond_ratio: float | None = None):
         grid_bond_ratio: ratio between grid size and polymer bond length
 
     Returns:
-        Pysim object for simulating ideal chain
+        ScribeSim object for simulating ideal chain
     """
     if grid_bond_ratio is None:
         config = parameters.get_config(nbeads)
@@ -25,7 +25,7 @@ def ideal_chain_simulation(nbeads: int, grid_bond_ratio: float | None = None):
 
     config["nonbonded_on"] = False
     config["load_bead_types"] = False
-    sim = Pysim(root=f"ideal-chain-{nbeads}", config=config, seqs=None)
+    sim = ScribeSim(root=f"ideal-chain-{nbeads}", config=config, seqs=None)
     return sim
 
 
