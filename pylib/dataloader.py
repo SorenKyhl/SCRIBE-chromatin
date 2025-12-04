@@ -208,9 +208,7 @@ class DataLoader:
         if factor < 1:
             raise ValueError(f"highres_beads ({highres_beads}) must be >= nbeads ({nbeads})")
         if len(gthic) % nbeads != 0:
-            raise ValueError(
-                f"highres_beads ({len(gthic)}) must be divisible by nbeads ({nbeads})"
-            )
+            raise ValueError(f"highres_beads ({len(gthic)}) must be divisible by nbeads ({nbeads})")
 
         pooled = pool_fn(gthic, factor, normalize=True)
         return pooled
@@ -230,9 +228,7 @@ class DataLoader:
         assert method in ["mean", "max"]
         filename = str(filename)  # pyBigWig doesn't accept pathlib objects
         bw = pyBigWig.open(filename)
-        signal = bw.stats(
-            self.chromstr, self.start, self.end, type=method, nBins=self.bigsize
-        )
+        signal = bw.stats(self.chromstr, self.start, self.end, type=method, nBins=self.bigsize)
         signal = np.delete(signal, self.dropped_inds)
         return np.array(signal[0 : self.size])
 
@@ -311,5 +307,3 @@ class DataLoader:
             print(f"loaded {name}")
 
         return seqs
-
-

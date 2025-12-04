@@ -34,11 +34,11 @@ class TestPool:
         mat = np.random.rand(8, 8)
         mat = (mat + mat.T) / 2
         np.fill_diagonal(mat, np.random.rand(8))
-        
+
         original_sum = np.sum(np.triu(mat))
         result = hic.pool(mat, factor=2, normalize=False)
         pooled_sum = np.sum(np.triu(result))
-        
+
         # Should conserve upper triangle sum
         np.testing.assert_almost_equal(original_sum, pooled_sum, decimal=10)
 
@@ -94,7 +94,7 @@ class TestPoolDiagonal:
         mat[1, 1] = 2
         mat[2, 2] = 3
         mat[3, 3] = 4
-        
+
         result = hic.pool_diagonal(mat, normalize=False)
         # Result[0,0] = mat[0,0] + mat[1,1] = 3
         # Result[1,1] = mat[2,2] + mat[3,3] = 7
@@ -114,11 +114,9 @@ class TestPoolSeqs:
 
     def test_pool_seqs_2d(self):
         """Pool seqs should work on 2D arrays (multiple sequences)."""
-        seqs = np.array([[1.0, 2.0, 3.0, 4.0],
-                         [2.0, 4.0, 6.0, 8.0]])
+        seqs = np.array([[1.0, 2.0, 3.0, 4.0], [2.0, 4.0, 6.0, 8.0]])
         result = hic.pool_seqs(seqs, factor=2)
-        expected = np.array([[1.5, 3.5],
-                             [3.0, 7.0]])
+        expected = np.array([[1.5, 3.5], [3.0, 7.0]])
         np.testing.assert_array_equal(result, expected)
 
 
@@ -155,7 +153,7 @@ class TestNormalizeHic:
 
 class TestPoolingConsistency:
     """Tests that verify consistency between pooling methods.
-    
+
     These tests verify the key property that:
     - Conservative pooling (pool) conserves total contacts
     - Non-conservative pooling (pool_sum) is a simple block sum
@@ -165,10 +163,10 @@ class TestPoolingConsistency:
         """Conservative and non-conservative pooling should give different results."""
         mat = np.random.rand(8, 8)
         mat = (mat + mat.T) / 2
-        
+
         conservative = hic.pool(mat, factor=2, normalize=False)
         nonconservative = hic.pool_sum(mat, factor=2, normalize=False)
-        
+
         # They should differ (unless the matrix is very special)
         assert not np.allclose(conservative, nonconservative)
 
@@ -176,9 +174,9 @@ class TestPoolingConsistency:
         """Pooling should work with factor > 2."""
         mat = np.random.rand(16, 16)
         mat = (mat + mat.T) / 2
-        
+
         result = hic.pool(mat, factor=4, normalize=False)
         assert result.shape == (4, 4)
-        
+
         result_sum = hic.pool_sum(mat, factor=4, normalize=False)
         assert result_sum.shape == (4, 4)

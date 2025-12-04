@@ -9,7 +9,6 @@ For low-level file loading, use DataLoader from pylib.dataloader.
 """
 
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -91,7 +90,7 @@ class DataPipeline:
         self.cache_dir = self.data_dir / "cache"
 
         # Internal loader (created lazily)
-        self._loader: Optional[DataLoader] = None
+        self._loader: DataLoader | None = None
 
         # Cached data
         self._hic = None
@@ -112,7 +111,7 @@ class DataPipeline:
             )
         return self._loader
 
-    def _get_hic_path(self) -> Optional[Path]:
+    def _get_hic_path(self) -> Path | None:
         """Get the path to the Hi-C file for this cell type."""
         hic_dir = self.data_dir / "hic" / self.cell
         if not hic_dir.exists():
@@ -122,7 +121,7 @@ class DataPipeline:
             return None
         return hic_files[0]
 
-    def _get_chipseq_dir(self) -> Optional[Path]:
+    def _get_chipseq_dir(self) -> Path | None:
         """Get the ChIP-seq directory for this cell type."""
         # Try with assembly suffix first
         cell_base = self.cell.split("_")[0]  # HCT116_auxin -> HCT116
