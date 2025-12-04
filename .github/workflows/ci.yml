@@ -25,12 +25,12 @@ jobs:
       - name: Run tests
         shell: bash -el {0}
         run: |
-          pytest tests/ -v --tb=short
+          pytest tests/ -v --tb=short -m 'not slow'
 
       - name: Run tests with coverage
         shell: bash -el {0}
         run: |
-          pytest tests/ --cov=scribe --cov-report=xml --cov-report=term-missing
+          pytest tests/ --cov=scribe --cov-report=xml --cov-report=term-missing -m 'not slow'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

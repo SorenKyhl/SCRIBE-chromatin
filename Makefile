@@ -12,8 +12,9 @@ help:
 	@echo "  clean     - Remove build artifacts"
 	@echo "  docs      - Build Sphinx documentation"
 	@echo "  docs-open - Build and open documentation in browser"
-	@echo "  test      - Run unit tests"
-	@echo "  test-cov  - Run tests with coverage report"
+	@echo "  test      - Run fast unit tests (skips slow/integration tests)"
+	@echo "  test-all  - Run all unit tests (including slow/integration tests)"
+	@echo "  test-cov  - Run fast tests with coverage report"
 	@echo "  format    - Format code with black and ruff"
 	@echo "  lint      - Check code style without modifying"
 	@echo ""
@@ -41,6 +42,9 @@ docs-open: docs
 	open docs/build/html/index.html
 
 test:
+	pytest tests/ -m 'not slow'
+
+test-all:
 	pytest tests/
 
 test-cov:

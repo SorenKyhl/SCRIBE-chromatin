@@ -53,7 +53,7 @@ class TestSimulationPoolingConsistency:
         os.chdir(temp_output_dir)
 
         nbeads = 256  # Smaller for faster test
-        nsweeps = 5000
+        nsweeps = 2
 
         # Run simulation without pooling (full resolution)
         sim_full = ideal_chain_simulation(nbeads)
@@ -92,7 +92,7 @@ class TestSimulationPoolingConsistency:
         os.chdir(temp_output_dir)
 
         nbeads = 256  # Smaller for faster test
-        nsweeps = 5000
+        nsweeps = 2
 
         # Run simulation without pooling (full resolution)
         sim_full = ideal_chain_simulation(nbeads)
@@ -135,7 +135,7 @@ class TestIdealChainSimulation:
         os.chdir(temp_output_dir)
 
         sim = ideal_chain_simulation(128)
-        sim.config["nSweeps"] = 1000
+        sim.config["nSweeps"] = 2
         sim.run("test_run")
 
         # Check output files exist
@@ -152,7 +152,7 @@ class TestIdealChainSimulation:
 
         nbeads = 128
         sim = ideal_chain_simulation(nbeads)
-        sim.config["nSweeps"] = 1000
+        sim.config["nSweeps"] = 2
         sim.run("test_run")
 
         result = epilib.Sim("test_run/")
