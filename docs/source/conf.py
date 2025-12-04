@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('../../'))
 # Mock imports for modules that may not be installed
 autodoc_mock_imports = [
     'hicrep', 'hicstraw', 'pyBigWig', 'cooler', 'openmm',
-    'OpenMiChroM', 'pyticg', 'codetiming'
+    'OpenMiChroM', 'scribe_engine', 'codetiming'
 ]
 
 

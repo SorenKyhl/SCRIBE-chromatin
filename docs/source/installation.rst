@@ -28,7 +28,7 @@ The easiest way to install SCRIBE is using conda:
 
 This command does two things:
 
-1. **Compiles the C++ simulation engine** (``src/``) into a Python extension module (``pyticg``) using pybind11
+1. **Compiles the C++ simulation engine** (``src/``) into a Python extension module (``scribe_engine``) using pybind11
 2. **Installs the Python API** (``scribe/``) which provides high-level interfaces for running simulations and maximum entropy optimization
 
 Partial Builds

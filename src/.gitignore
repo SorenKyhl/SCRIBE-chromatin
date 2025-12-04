@@ -1,5 +1,5 @@
 TICG-engine
 TICG-debug
-pyticg.cpython-39-x86_64-linux-gnu.so
+scribe_engine.cpython-39-x86_64-linux-gnu.so
 *.o
 

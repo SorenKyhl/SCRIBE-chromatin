@@ -57,7 +57,7 @@ make all
 ```
 
 This command does two things:
-1. **Compiles the C++ simulation engine** (`src/`) into a Python extension module (`pyticg`) using pybind11
+1. **Compiles the C++ simulation engine** (`src/`) into a Python extension module (`scribe_engine`) using pybind11
 2. **Installs the Python API** (`scribe/`) which provides high-level interfaces for running simulations and maximum entropy optimization
 
 ## Documentation
@@ -323,7 +323,7 @@ SCRIBE-chromatin/
 
 | Module | Level | Description |
 |--------|-------|-------------|
-| `pyticg` | Low | C++ extension (pybind11 wrapper) |
+| `scribe_engine` | Low | C++ extension (pybind11 wrapper) |
 | `scribe_sim.ScribeSim` | High | Simulation setup, execution, and I/O |
 | `maxent.Maxent` | Low | Core maximum entropy optimization |
 | `pipeline.Pipeline` | High | ChIP-seq processing + optimization workflow |

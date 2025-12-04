@@ -18,21 +18,20 @@
 #include "random_mars.cpp"
 
 /*
- * crude implementation for pybind
- * usage: create python module in command line:
- *		>make pybind
+ * Pybind11 wrapper for SCRIBE simulation engine
+ * 
+ * Build from src/ directory:
+ *     make pybind
  *
- * ...will generate pyticg.cpythonxxx.so file that can be imported in python as:
- *		import pyticg
- *		sim = pytig.Sim()
- *		sim.run()
- *
- * todo: move to Sim.cpp source code and integrate with build system
+ * This generates scribe_engine.cpython-*.so which can be imported as:
+ *     from scribe.scribe_engine import Sim
+ *     sim = Sim()
+ *     sim.run()
  */
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(pyticg, m) {
+PYBIND11_MODULE(scribe_engine, m) {
     py::class_<Sim>(m, "Sim")
         .def(py::init<>())
         .def(py::init<const std::string &>())

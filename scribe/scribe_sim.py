@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from scribe import utils
-from scribe.pyticg import Sim
+from scribe.scribe_engine import Sim
 from scribe.utils import cat, cd, copy_last_snapshot
 
 PathLike = Union[Path, str]

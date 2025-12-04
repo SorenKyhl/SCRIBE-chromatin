@@ -25,14 +25,14 @@ help:
 all: build install
 
 build: 
-	(cd src && make pybind && mv pyticg* ../scribe)
+	(cd src && make pybind && mv scribe_engine* ../scribe)
 
 install: 
 	python setup.py bdist_wheel
 	python -m pip install dist/* --force-reinstall
 
 clean:
-	rm -rf build dist *.egg-info scribe/*.so scribe/pyticg*
+	rm -rf build dist *.egg-info scribe/*.so scribe/scribe_engine*
 
 docs:
 	cd docs && make html

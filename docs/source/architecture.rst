@@ -33,7 +33,7 @@ Module Hierarchy
    * - Module
      - Level
      - Description
-   * - ``pyticg``
+   * - ``scribe_engine``
      - Low
      - C++ extension (pybind11 wrapper) providing core simulation routines
    * - ``scribe_sim.ScribeSim``
@@ -65,7 +65,7 @@ The simulation engine implements the Theoretically Informed Coarse Grain (TICG) 
 - **Monte Carlo sampling** of polymer configurations
 - **Contact map computation** from ensemble of structures
 
-The engine is compiled into a Python extension module (``pyticg``) using pybind11.
+The engine is compiled into a Python extension module (``scribe_engine``) using pybind11.
 
 Python API (``scribe/``)
 ------------------------

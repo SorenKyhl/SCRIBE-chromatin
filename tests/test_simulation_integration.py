@@ -3,7 +3,7 @@
 These tests verify that the C++ simulation's contact map pooling matches
 the Python pooling functions in scribe.hic.
 
-These tests require the pyticg C++ extension to be built (run `make all`).
+These tests require the scribe_engine C++ extension to be built (run `make all`).
 They are automatically skipped if the extension is not available.
 """
 
@@ -23,7 +23,7 @@ except ImportError:
     HAS_SIMULATION = False
 
 pytestmark = pytest.mark.skipif(
-    not HAS_SIMULATION, reason="pyticg C++ extension not built (run `make all`)"
+    not HAS_SIMULATION, reason="scribe_engine C++ extension not built (run `make all`)"
 )
 
 

@@ -42,7 +42,7 @@ debug:
 	g++ $(DEBUG_FLAGS) -I ../include -o TICG-debug $(MAIN) Grid.o Sim.o random_mars.o
 
 pybind:
-	$(CC) -O3 -shared -std=c++17 $(INCLUDE) -fPIC $(PYBIND_INCLUDES) $(PYBIND_LDFLAGS) pybind_Sim.cpp -o pyticg$(PYTHON_EXT_SUFFIX)
+	$(CC) -O3 -shared -std=c++17 $(INCLUDE) -fPIC $(PYBIND_INCLUDES) $(PYBIND_LDFLAGS) pybind_Sim.cpp -o scribe_engine$(PYTHON_EXT_SUFFIX)
 
 clean:
 	rm -f *.o

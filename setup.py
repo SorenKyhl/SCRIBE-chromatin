@@ -13,7 +13,7 @@ if platform.system() == 'Darwin':
     extra_link_args.append('dynamic_lookup')
 
 module1 = Pybind11Extension(
-    name='scribe.pyticg',
+    name='scribe.scribe_engine',
     include_dirs=['include'],
     language='c++',
     sources=["src/pybind_Sim.cpp"],

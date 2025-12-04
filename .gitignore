@@ -56,7 +56,7 @@ docs/build/
 
 # SCRIBE-specific
 TICG-engine
-pylib/pyticg*
+pylib/scribe_engine*
 data_out/
 *.log
 *.out
