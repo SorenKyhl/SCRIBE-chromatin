@@ -214,7 +214,9 @@ class TestDownloadFile:
         """Test that download errors are handled gracefully."""
         dest_path = temp_data_dir / "file.txt"
 
-        with mock.patch("scribe.download_data.requests.get", side_effect=Exception("Network error")):
+        with mock.patch(
+            "scribe.download_data.requests.get", side_effect=Exception("Network error")
+        ):
             result = download_file("http://example.com/file.txt", dest_path)
 
         assert result is False

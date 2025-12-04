@@ -18,28 +18,30 @@ from scribe.paths import get_data_dir
 
 
 class DataPipeline:
-    """High-level data pipeline for loading Hi-C and ChIP-seq by cell type.
+    """
+    High-level data pipeline for loading Hi-C and ChIP-seq by cell type.
 
     This class provides a semantic interface to the SCRIBE data directory.
     Instead of specifying file paths, you specify cell types and the pipeline
-    automatically resolves paths from ~/.scribe/data/.
+    automatically resolves paths from ``~/.scribe/data/``.
 
     Args:
-        cell: Cell type name (e.g., "HCT116_auxin", "GM12878")
-        chrom: Chromosome number or name
-        nbeads: Number of polymer beads (bins) for the simulation
-        start: Start position in base pairs (default: 0)
-        end: End position in base pairs (default: inferred from nbeads and resolution)
-        assembly: Genome assembly for ChIP-seq (default: "hg19")
-        highres_beads: Number of beads for high-resolution loading (default: 20480)
-        cache: Whether to cache processed data (default: True)
+        cell (str): Cell type name (e.g., ``HCT116_auxin``, ``GM12878``)
+        chrom (int or str): Chromosome number or name
+        nbeads (int): Number of polymer beads (bins) for the simulation
+        start (int, optional): Start position in base pairs (default: 0)
+        end (int, optional): End position in base pairs (default: inferred from nbeads and resolution)
+        assembly (str, optional): Genome assembly for ChIP-seq (default: ``hg19``)
+        highres_beads (int, optional): Number of beads for high-resolution loading (default: 20480)
+        cache (bool, optional): Whether to cache processed data (default: True)
 
     Example:
         >>> pipeline = DataPipeline(cell="HCT116_auxin", chrom=2, nbeads=1024)
         >>> hic = pipeline.load_hic()
         >>> chipseq = pipeline.load_chipseq()
 
-    Data Directory Structure:
+    Data Directory Structure::
+
         ~/.scribe/data/
         ├── hic/
         │   └── {cell}/           # e.g., HCT116_auxin/

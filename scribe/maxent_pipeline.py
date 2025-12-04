@@ -15,7 +15,7 @@ from scribe import epilib as ep
 class MaxentPipeline:
     """
     Pipeline for running maximum entropy optimizations.
-    
+
     Args:
         name [str]: name of output directory
         gthic [ndarray]: ground truth hi-c contact map: optimization target
