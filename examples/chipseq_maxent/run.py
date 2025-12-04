@@ -4,7 +4,7 @@ import numpy as np
 
 import scribe.default
 from scribe import epilib
-from scribe.datapipeline import DataPipeline
+from scribe.data_pipeline import DataPipeline
 from scribe.maxent import Maxent
 
 encode_seqs = ["H3K4me3", "H3K27ac", "H3K27me3", "H3K4me1", "H3K36me3", "H3K9me3"]

@@ -29,7 +29,7 @@ The high-level ``DataPipeline`` loads data by cell type, automatically finding f
 
 .. code-block:: python
 
-   from scribe.datapipeline import DataPipeline
+   from scribe.data_pipeline import DataPipeline
    import numpy as np
 
    # Create pipeline for HCT116 cell line data
@@ -64,7 +64,7 @@ For custom file paths or fine-grained control, use ``DataLoader``:
 
 .. code-block:: python
 
-   from scribe.dataloader import DataLoader
+   from scribe.data_loader import DataLoader
    import numpy as np
 
    # Define genomic region explicitly
@@ -143,10 +143,10 @@ Optimize the Flory-Huggins χ interaction parameters to match experimental Hi-C 
    me.fit()
 
 
-High-Level Pipeline
--------------------
+High-Level MaxentPipeline
+-------------------------
 
-The Pipeline class is a high-level wrapper for spawning multiple maximum entropy training runs. Use it to systematically compare different sequence representations derived from Hi-C data (e.g., varying the number of principal components):
+The ``MaxentPipeline`` class is a high-level wrapper for spawning multiple maximum entropy training runs. Use it to systematically compare different sequence representations derived from Hi-C data (e.g., varying the number of principal components):
 
 .. code-block:: python
 

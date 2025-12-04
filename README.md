@@ -104,7 +104,7 @@ python -m scribe.download_data --chipseq   # ChIP-seq only (~6.8 GB)
 The high-level `DataPipeline` loads data by cell type, automatically finding files in `~/.scribe/data/`:
 
 ```python
-from scribe.datapipeline import DataPipeline
+from scribe.data_pipeline import DataPipeline
 import numpy as np
 
 # Create pipeline for HCT116 cell line data
@@ -137,7 +137,7 @@ np.save("experimental_hic.npy", hic)
 For custom file paths or fine-grained control, use `DataLoader`:
 
 ```python
-from scribe.dataloader import DataLoader
+from scribe.data_loader import DataLoader
 import numpy as np
 
 # Define genomic region explicitly
@@ -212,9 +212,9 @@ me = Maxent(
 me.fit()
 ```
 
-### High-Level Pipeline
+### High-Level MaxentPipeline
 
-The Pipeline class is a high-level wrapper for spawning multiple maximum entropy training runs. Use it to systematically compare different sequence representations derived from Hi-C data (e.g., varying the number of principal components):
+The `MaxentPipeline` class is a high-level wrapper for spawning multiple maximum entropy training runs. Use it to systematically compare different sequence representations derived from Hi-C data (e.g., varying the number of principal components):
 
 ```python
 from scribe.maxent_pipeline import MaxentPipeline
@@ -310,8 +310,8 @@ SCRIBE-chromatin/
 │   ├── scribe_sim.py         # High-level simulation interface
 │   ├── maxent.py        # Maximum entropy optimizer
 │   ├── pipeline.py      # End-to-end workflow automation
-│   ├── datapipeline.py  # High-level data loading by cell type
-│   ├── dataloader.py    # Low-level file loading (.hic, .bigWig)
+│   ├── data_pipeline.py  # High-level data loading by cell type
+│   ├── data_loader.py    # Low-level file loading (.hic, .bigWig)
 │   ├── analysis.py      # Analysis and visualization
 │   └── default.py       # Default configurations
 ├── examples/            # Tutorial notebooks and scripts
@@ -326,9 +326,9 @@ SCRIBE-chromatin/
 | `scribe_engine` | Low | C++ extension (pybind11 wrapper) |
 | `scribe_sim.ScribeSim` | High | Simulation setup, execution, and I/O |
 | `maxent.Maxent` | Low | Core maximum entropy optimization |
-| `pipeline.Pipeline` | High | ChIP-seq processing + optimization workflow |
-| `datapipeline.DataPipeline` | High | Load data by cell type from ~/.scribe/data/ |
-| `dataloader.DataLoader` | Low | Load from specific .hic and .bigWig files |
+| `maxent_pipeline.MaxentPipeline` | High | Maximum entropy optimization workflow |
+| `data_pipeline.DataPipeline` | High | Load data by cell type from ~/.scribe/data/ |
+| `data_loader.DataLoader` | Low | Load from specific .hic and .bigWig files |
 
 ## Examples
 

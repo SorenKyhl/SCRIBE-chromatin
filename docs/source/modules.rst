@@ -33,18 +33,18 @@ scribe.maxent_pipeline
    :undoc-members:
    :show-inheritance:
 
-scribe.datapipeline
+scribe.data_pipeline
 -------------------
 
-.. automodule:: scribe.datapipeline
+.. automodule:: scribe.data_pipeline
    :members:
    :undoc-members:
    :show-inheritance:
 
-scribe.dataloader
+scribe.data_loader
 -----------------
 
-.. automodule:: scribe.dataloader
+.. automodule:: scribe.data_loader
    :members:
    :undoc-members:
    :show-inheritance:
@@ -65,10 +65,10 @@ scribe.hic
    :undoc-members:
    :show-inheritance:
 
-scribe.chipseqPipeline
+scribe.chipseq_pipeline
 ----------------------
 
-.. automodule:: scribe.chipseqPipeline
+.. automodule:: scribe.chipseq_pipeline
    :members:
    :undoc-members:
    :show-inheritance:

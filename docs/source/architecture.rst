@@ -14,8 +14,8 @@ Directory Structure
    │   ├── scribe_sim.py         # High-level simulation interface
    │   ├── maxent.py        # Maximum entropy optimizer
    │   ├── pipeline.py      # End-to-end workflow automation
-   │   ├── datapipeline.py  # High-level data loading by cell type
-   │   ├── dataloader.py    # Low-level file loading (.hic, .bigWig)
+   │   ├── data_pipeline.py  # High-level data loading by cell type
+   │   ├── data_loader.py    # Low-level file loading (.hic, .bigWig)
    │   ├── analysis.py      # Analysis and visualization
    │   └── default.py       # Default configurations
    ├── examples/            # Tutorial notebooks and scripts
@@ -42,13 +42,13 @@ Module Hierarchy
    * - ``maxent.Maxent``
      - Low
      - Core maximum entropy optimization. Iteratively updates χ parameters.
-   * - ``pipeline.Pipeline``
+   * - ``maxent_pipeline.MaxentPipeline``
      - High
-     - ChIP-seq processing + optimization workflow. Spawns multiple training runs.
-   * - ``datapipeline.DataPipeline``
+     - Maximum entropy optimization workflow. Spawns multiple training runs.
+   * - ``data_pipeline.DataPipeline``
      - High
      - High-level data loading by cell type from ``~/.scribe/data/``.
-   * - ``dataloader.DataLoader``
+   * - ``data_loader.DataLoader``
      - Low
      - Low-level file loading from .hic and .bigWig files.
 
@@ -82,7 +82,7 @@ Python API (``scribe/``)
 - Updates χ parameters based on gradient of contact frequency differences
 - Tracks convergence metrics (loss, SCC, parameter updates)
 
-**Pipeline** - Workflow automation
+**MaxentPipeline** - Workflow automation
 
 - Coordinates data loading, simulation, and optimization
 - Enables parameter sweeps (e.g., over number of principal components)

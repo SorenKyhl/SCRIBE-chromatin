@@ -242,7 +242,7 @@ def _get_chipseq_pipeline():
     """Get the default ChIP-seq processing pipeline (lazy loaded)."""
     global _chipseq_pipeline
     if _chipseq_pipeline is None:
-        from scribe.chipseqPipeline import ChipseqPipeline, Normalize, Sigmoid, Smooth
+        from scribe.chipseq_pipeline import ChipseqPipeline, Normalize, Sigmoid, Smooth
 
         _chipseq_pipeline = ChipseqPipeline([Smooth(), Normalize(), Sigmoid()])
     return _chipseq_pipeline
@@ -252,7 +252,7 @@ def _get_data_pipeline():
     """Get the default data loader (lazy loaded)."""
     global _data_pipeline
     if _data_pipeline is None:
-        from scribe.dataloader import DataLoader
+        from scribe.data_loader import DataLoader
 
         _data_pipeline = DataLoader(res, chrom, start, end, size)
     return _data_pipeline

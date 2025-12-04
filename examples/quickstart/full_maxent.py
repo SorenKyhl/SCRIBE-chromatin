@@ -28,7 +28,7 @@ from pathlib import Path
 import numpy as np
 
 from scribe import default
-from scribe.datapipeline import DataPipeline
+from scribe.data_pipeline import DataPipeline
 from scribe.maxent import Maxent
 
 

@@ -17,7 +17,7 @@ Output:
 
 import numpy as np
 
-from scribe.datapipeline import DataPipeline
+from scribe.data_pipeline import DataPipeline
 
 
 def main():

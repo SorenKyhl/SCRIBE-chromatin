@@ -26,7 +26,7 @@ import sys
 import numpy as np
 
 from scribe import default
-from scribe.datapipeline import DataPipeline
+from scribe.data_pipeline import DataPipeline
 from scribe.plot_contactmap import plot_contactmap
 from scribe.scribe_sim import ScribeSim
 
