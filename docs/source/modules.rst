@@ -34,7 +34,7 @@ scribe.maxent_pipeline
    :show-inheritance:
 
 scribe.data_pipeline
--------------------
+--------------------
 
 .. automodule:: scribe.data_pipeline
    :members:
@@ -42,7 +42,7 @@ scribe.data_pipeline
    :show-inheritance:
 
 scribe.data_loader
------------------
+------------------
 
 .. automodule:: scribe.data_loader
    :members:
@@ -66,7 +66,7 @@ scribe.hic
    :show-inheritance:
 
 scribe.chipseq_pipeline
-----------------------
+-----------------------
 
 .. automodule:: scribe.chipseq_pipeline
    :members:
