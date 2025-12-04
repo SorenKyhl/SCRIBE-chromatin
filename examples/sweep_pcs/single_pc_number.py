@@ -4,7 +4,7 @@ import json
 import numpy as np
 
 from scribe import epilib as ep
-from scribe.pipeline import Pipeline
+from scribe.maxent_pipeline import MaxentPipeline
 
 """
 optimizes chromosome structure for HCT116-chr2-0Mbp-102.4Mbp using 1024 beads.
@@ -27,5 +27,5 @@ params["num_iterations"] = 12
 for i in range(2, 10):
     seqs_method = functools.partial(ep.get_sequences, k=i)
     name = "quick-" + str(i)
-    pipe = Pipeline(name, gthic, config, params, seqs_method=seqs_method, load_first=False)
+    pipe = MaxentPipeline(name, gthic, config, params, seqs_method=seqs_method, load_first=False)
     pipe.fit()

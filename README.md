@@ -217,7 +217,7 @@ me.fit()
 The Pipeline class is a high-level wrapper for spawning multiple maximum entropy training runs. Use it to systematically compare different sequence representations derived from Hi-C data (e.g., varying the number of principal components):
 
 ```python
-from scribe.pipeline import Pipeline
+from scribe.maxent_pipeline import MaxentPipeline
 from scribe import epilib as ep
 from scribe import default
 import functools
@@ -231,7 +231,7 @@ params = default.params.copy()
 # Sweep over different numbers of principal components
 for k in range(1, 11):
     seqs_method = functools.partial(ep.get_sequences, k=k)
-    pipe = Pipeline(
+    pipe = MaxentPipeline(
         name=f"pc_{k}",
         gthic=experimental_hic,
         config=config,

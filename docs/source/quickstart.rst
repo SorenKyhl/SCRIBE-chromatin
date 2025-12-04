@@ -150,7 +150,7 @@ The Pipeline class is a high-level wrapper for spawning multiple maximum entropy
 
 .. code-block:: python
 
-   from scribe.pipeline import Pipeline
+   from scribe.maxent_pipeline import MaxentPipeline
    from scribe import epilib as ep
    from scribe import default
    import functools
@@ -164,7 +164,7 @@ The Pipeline class is a high-level wrapper for spawning multiple maximum entropy
    # Sweep over different numbers of principal components
    for k in range(1, 11):
        seqs_method = functools.partial(ep.get_sequences, k=k)
-       pipe = Pipeline(
+       pipe = MaxentPipeline(
            name=f"pc_{k}",
            gthic=experimental_hic,
            config=config,

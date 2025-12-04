@@ -12,11 +12,12 @@ import scribe.maxent as me
 from scribe import epilib as ep
 
 
-class Pipeline:
+class MaxentPipeline:
     """
-    Pipeline for running maximum entropy optimizations
-    args:
-        self [str]: name of output directory
+    Pipeline for running maximum entropy optimizations.
+    
+    Args:
+        name [str]: name of output directory
         gthic [ndarray]: ground truth hi-c contact map: optimization target
         config [dir]: simulation configuration
         params [dir]: maxent optimization parameters

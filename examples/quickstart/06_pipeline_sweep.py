@@ -20,7 +20,7 @@ import numpy as np
 
 from scribe import default
 from scribe import epilib as ep
-from scribe.pipeline import Pipeline
+from scribe.maxent_pipeline import MaxentPipeline
 
 
 def main():
@@ -44,7 +44,7 @@ def main():
         print(f"--- Running with k={k} (2k={2*k} sequences) ---")
 
         seqs_method = functools.partial(ep.get_sequences, k=k)
-        pipe = Pipeline(
+        pipe = MaxentPipeline(
             name=f"pc_{k}",
             gthic=experimental_hic,
             config=config,

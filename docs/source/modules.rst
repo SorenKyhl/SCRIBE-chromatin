@@ -25,10 +25,10 @@ scribe.maxent
    :undoc-members:
    :show-inheritance:
 
-scribe.pipeline
----------------
+scribe.maxent_pipeline
+----------------------
 
-.. automodule:: scribe.pipeline
+.. automodule:: scribe.maxent_pipeline
    :members:
    :undoc-members:
    :show-inheritance:
