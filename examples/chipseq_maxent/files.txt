@@ -1,0 +1,13 @@
+"https://www.encodeproject.org/metadata/?files.biological_replicates_formatted=Rep+1%2C+Rep+2&files.output_type=signal+p-value&type=Experiment&cart=%2Fcarts%2Fc6cf671c-5804-4e6c-8617-6fa12d99b66e%2F&files.assembly=hg19"
+https://www.encodeproject.org/files/ENCFF679MXB/@@download/ENCFF679MXB.bigWig
+https://www.encodeproject.org/files/ENCFF757LRS/@@download/ENCFF757LRS.bigWig
+https://www.encodeproject.org/files/ENCFF977LFP/@@download/ENCFF977LFP.bigWig
+https://www.encodeproject.org/files/ENCFF014WPW/@@download/ENCFF014WPW.bigWig
+https://www.encodeproject.org/files/ENCFF960LSV/@@download/ENCFF960LSV.bigWig
+https://www.encodeproject.org/files/ENCFF205ZML/@@download/ENCFF205ZML.bigWig
+https://www.encodeproject.org/files/ENCFF445BLD/@@download/ENCFF445BLD.bigWig
+https://www.encodeproject.org/files/ENCFF121SMM/@@download/ENCFF121SMM.bigWig
+https://www.encodeproject.org/files/ENCFF570WCD/@@download/ENCFF570WCD.bigWig
+https://www.encodeproject.org/files/ENCFF176NSX/@@download/ENCFF176NSX.bigWig
+https://www.encodeproject.org/files/ENCFF736AWH/@@download/ENCFF736AWH.bigWig
+https://www.encodeproject.org/files/ENCFF954SUA/@@download/ENCFF954SUA.bigWig

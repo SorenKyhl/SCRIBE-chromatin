@@ -1,0 +1,12 @@
+{
+	"num_iterations": 100,
+	"gamma": 1,
+	"trust_region": 1000,
+	"equilib_sweeps": 2000,
+	"production_sweeps": 2500,
+	"goal_specified": 1,
+	"overwrite": 0,
+	"parallel": 7,
+	"randomize_seed": 1,
+	"mode": "all"
+}

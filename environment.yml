@@ -1,0 +1,34 @@
+name: scribe
+channels:
+    - conda-forge
+    - bioconda
+dependencies:
+    - python=3.10
+    - pip
+    - numpy
+    - matplotlib
+    - scipy
+    - sympy
+    - seaborn
+    - pandas
+    - scikit-learn
+    - numba
+    - tqdm
+    - requests
+    - scikit-image
+    - pybind11
+    - sphinx
+    - myst-parser
+    - sphinx_rtd_theme
+    - pytest
+    - pytest-cov
+    - black
+    - ruff
+    - pyBigWig
+    - pip:
+        - bayesian-optimization
+        - opencv-python
+        - hicrep
+        - codetiming
+        - m2r
+        - hic-straw

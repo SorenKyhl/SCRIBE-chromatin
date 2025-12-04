@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 75 120">
+  <!-- Polymer chain - smooth S curve -->
+  <defs>
+    <radialGradient id="pBlue" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="30%" style="stop-color:#5a9fd4"/>
+      <stop offset="100%" style="stop-color:#2e6da4"/>
+    </radialGradient>
+    <radialGradient id="pRed" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="30%" style="stop-color:#e86850"/>
+      <stop offset="100%" style="stop-color:#c43c2c"/>
+    </radialGradient>
+    <radialGradient id="pGreen" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="30%" style="stop-color:#5cc85c"/>
+      <stop offset="100%" style="stop-color:#2e9e2e"/>
+    </radialGradient>
+    <radialGradient id="pYellow" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="30%" style="stop-color:#e8d830"/>
+      <stop offset="100%" style="stop-color:#b8a810"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- S-curve path for the polymer backbone -->
+  <path d="M 18 12 
+           Q 55 8, 62 25
+           Q 70 45, 45 55
+           Q 15 68, 12 85
+           Q 8 105, 45 108"
+        stroke="#a0a0a0" stroke-width="3" fill="none"/>
+  
+  <!-- Beads placed along the S curve -->
+  <!-- Top of S curving right: blue, red, green -->
+  <circle cx="18" cy="12" r="10" fill="url(#pBlue)"/>
+  <circle cx="40" cy="10" r="10" fill="url(#pRed)"/>
+  <circle cx="58" cy="18" r="10" fill="url(#pGreen)"/>
+  
+  <!-- Upper curve going down-left: blue, yellow -->
+  <circle cx="62" cy="38" r="10" fill="url(#pBlue)"/>
+  <circle cx="48" cy="52" r="10" fill="url(#pYellow)"/>
+  
+  <!-- Middle crossing left: green, red -->
+  <circle cx="28" cy="62" r="10" fill="url(#pGreen)"/>
+  <circle cx="14" cy="78" r="10" fill="url(#pRed)"/>
+  
+  <!-- Bottom of S curving right: yellow, blue -->
+  <circle cx="18" cy="98" r="10" fill="url(#pYellow)"/>
+  <circle cx="40" cy="108" r="10" fill="url(#pBlue)"/>
+</svg>
