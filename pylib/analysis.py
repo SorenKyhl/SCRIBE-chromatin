@@ -1,3 +1,16 @@
+"""
+Analysis and visualization utilities for SCRIBE simulations.
+
+This module provides functions to analyze simulation results and generate
+publication-quality figures comparing predicted and experimental Hi-C.
+
+Key functions:
+- sim_analysis: Analyze a single simulation (energy, contact map, observables)
+- compare_analysis: Compare simulation to experimental Hi-C
+- plot_chi_matrix: Visualize learned interaction parameters
+- plot_energy_matrices: Visualize energy contributions
+"""
+
 import logging
 
 import matplotlib
@@ -14,7 +27,24 @@ plt.rcParams.update({"font.size": 18})
 
 
 def sim_analysis(sim):
-    """analyze data from simulation only (doesn't require ground truth hic)"""
+    """Analyze a single simulation without ground truth comparison.
+
+    Generates and saves visualization plots for:
+    - Consistency check (simulation self-consistency)
+    - Contact map
+    - Energy trajectory
+    - Observables
+    - Chi parameters (diagonal and plaid)
+    - O/E (observed/expected) ratio
+
+    Args:
+        sim: Simulation object (epilib.Sim or pysim.Pysim)
+
+    Outputs:
+        Saves PNG files to current directory:
+        consistency.png, contactmap.png, energy.png, obs.png,
+        diag_chis.png, chis.png, oe.png, diagonal.png, diagonal-log.png
+    """
     error = sim.plot_consistency()
     plt.savefig("consistency.png")
     plt.close()
@@ -81,7 +111,20 @@ def sim_analysis(sim):
 
 
 def compare_analysis(sim):
-    """analyze comparison of simulation with ground truth contact map"""
+    """Analyze simulation by comparing to ground truth (experimental) Hi-C.
+
+    Generates comparison visualizations including:
+    - Triangle plots (predicted vs experimental side-by-side)
+    - Difference maps
+    - Scatter plots of contact frequencies
+
+    Args:
+        sim: Simulation object with gthic attribute (ground truth Hi-C)
+
+    Outputs:
+        Saves PNG files: tri_oe.png, tri.png, tri_log.png, tri_dark.png,
+        diff.png, scatter.png
+    """
     plt.figure()
     ep.plot_tri(sim.hic, sim.gthic, oe=True)
     plt.savefig("tri_oe.png")
@@ -109,7 +152,18 @@ def compare_analysis(sim):
 
 
 def maxent_analysis(sim):
-    """analyze properties related to maxent optimization"""
+    """Analyze and log maximum entropy optimization metrics.
+
+    Calculates and appends optimization metrics to tracking files,
+    then generates convergence plots.
+
+    Args:
+        sim: Simulation object with hic and gthic attributes
+
+    Outputs:
+        Appends to: ../SCC.txt, ../RMSE.txt, ../RMSLE.txt
+        Saves: ../SCC.png
+    """
     SCC = ep.get_SCC(sim.hic, sim.gthic)
     RMSE = ep.get_RMSE(sim.hic, sim.gthic)
     RMSLE = ep.get_RMSLE(sim.hic, sim.gthic)
@@ -162,10 +216,29 @@ def maxent_analysis(sim):
 
 
 def plot_chi_matrix(sim):
+    """Plot the chi interaction parameter matrix.
+
+    Args:
+        sim: Simulation object with config containing 'chis'
+    """
     utils.plot_image(np.array(sim.config["chis"]))
 
 
 def plot_energy_matrices(sim):
+    """Plot all energy matrix components (S, D, E, ED).
+
+    Generates visualizations of the energy decomposition:
+    - S: Raw plaid energy
+    - D: Diagonal energy
+    - E: Symmetric plaid energy
+    - ED: Combined net energy
+
+    Args:
+        sim: Simulation object with config and seqs attributes
+
+    Outputs:
+        Saves: matrix_S.png, matrix_D.png, matrix_E.png, matrix_ED.png
+    """
     # energy matrices
     S, D, E, ED = energy_utils.calculate_all_energy(
         sim.config, sim.seqs.T, np.array(sim.config["chis"])

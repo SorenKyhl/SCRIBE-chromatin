@@ -1,3 +1,20 @@
+"""
+Hi-C contact map manipulation utilities.
+
+This module provides functions for processing and transforming Hi-C contact maps,
+including pooling (downsampling), normalization, smoothing, and loading from files.
+
+Key functions:
+- pool: Conservative sum pooling that preserves total contact counts
+- pool_sum: Simple sum pooling (non-conservative)
+- normalize_hic: Normalize contact map so diagonal mean is 1
+- smooth_hic: Gaussian smoothing of contact maps
+- load_hic: High-level Hi-C loading with caching
+
+The pooling functions are used to downsample high-resolution contact maps
+to lower resolution while handling the diagonal correctly to avoid double-counting.
+"""
+
 import copy
 from collections.abc import Callable
 from pathlib import Path
@@ -8,17 +25,22 @@ from skimage.measure import block_reduce
 
 from pylib import default, epilib
 
-"""
-collection of functions for manipulating hic maps
-"""
-
 
 def pool(inp, factor, fn=np.nansum, normalize=True):
-    """Resizes input matrix by factor using fn using modified sum pooling
+    """Resize input matrix by factor using conservative sum pooling.
 
-    in modified sum pooling, the sum along the diagonal only includes
-    the upper triangle of the pool window. this operation conserves the
-    total number of contacts in the contact map
+    In conservative pooling, the sum along the diagonal only includes
+    the upper triangle of the pool window. This operation conserves the
+    total number of contacts in the contact map.
+
+    Args:
+        inp: Input square matrix
+        factor: Downsampling factor (must evenly divide matrix size)
+        fn: Aggregation function (default: np.nansum)
+        normalize: If True, normalize output so diagonal mean is 1
+
+    Returns:
+        Pooled matrix of shape (m/factor, m/factor)
     """
     inp = copy.deepcopy(inp)
     assert len(inp.shape) == 2, f"must be 2d array not {inp.shape}"
