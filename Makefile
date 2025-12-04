@@ -8,7 +8,7 @@ help:
 	@echo "Targets:"
 	@echo "  all       - Build C++ module and install Python package (default)"
 	@echo "  build     - Build only the C++ simulation engine (TICG)"
-	@echo "  install   - Install only the Python package (pylib)"
+	@echo "  install   - Install only the Python package (scribe)"
 	@echo "  clean     - Remove build artifacts"
 	@echo "  docs      - Build Sphinx documentation"
 	@echo "  docs-open - Build and open documentation in browser"
@@ -25,14 +25,14 @@ help:
 all: build install
 
 build: 
-	(cd src && make pybind && mv pyticg* ../pylib)
+	(cd src && make pybind && mv pyticg* ../scribe)
 
 install: 
 	python setup.py bdist_wheel
 	python -m pip install dist/* --force-reinstall
 
 clean:
-	rm -rf build dist *.egg-info pylib/*.so pylib/pyticg*
+	rm -rf build dist *.egg-info scribe/*.so scribe/pyticg*
 
 docs:
 	cd docs && make html
@@ -44,12 +44,12 @@ test:
 	pytest tests/
 
 test-cov:
-	pytest tests/ --cov=pylib --cov-report=term-missing --cov-report=html
+	pytest tests/ --cov=scribe --cov-report=term-missing --cov-report=html
 
 format:
-	black pylib/ tests/ examples/
-	ruff check --fix pylib/ tests/ examples/
+	black scribe/ tests/ examples/
+	ruff check --fix scribe/ tests/ examples/
 
 lint:
-	black --check pylib/ tests/ examples/
-	ruff check pylib/ tests/ examples/
+	black --check scribe/ tests/ examples/
+	ruff check scribe/ tests/ examples/
