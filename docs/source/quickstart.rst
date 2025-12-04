@@ -6,7 +6,7 @@ This guide walks you through the main workflows in SCRIBE.
 Downloading Data
 ----------------
 
-Before running examples, download the required Hi-C and ChIP-seq data:
+SCRIBE uses experimental Hi-C and ChIP-seq data for training and validation. The data files are large and hosted externally. We provide helper functions to download an example dataset for HCT116 cells from ENCODE.
 
 .. code-block:: bash
 
@@ -25,7 +25,7 @@ Data is stored in ``~/.scribe/data/`` by default. Set ``SCRIBE_DATA_DIR`` to use
 Loading Data by Cell Type
 -------------------------
 
-The high-level ``DataPipeline`` loads data by cell type, automatically finding files in ``~/.scribe/data/``:
+The high-level ``DataPipeline`` loads raw Hi-C and ChIP-seq files, processes them (pooling, normalization), and prepares model-ready inputs:
 
 .. code-block:: python
 

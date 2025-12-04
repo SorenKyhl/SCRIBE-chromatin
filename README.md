@@ -69,11 +69,11 @@ make docs-open  # Build and open in browser
 make docs       # Build only
 ```
 
-
+## Quick Start
 
 ### Data Setup
 
-SCRIBE uses experimental Hi-C and ChIP-seq data for training and validation. The data files are large and hosted externally.
+SCRIBE uses experimental Hi-C and ChIP-seq data for training and validation. The data files are large and hosted externally. We provide helper functions to download an example dataset for HCT116 cells from ENCODE.
 
 **Data Location:**
 - Set `SCRIBE_DATA_DIR` environment variable to specify a custom location
@@ -97,11 +97,9 @@ python -m scribe.download_data --hic       # Hi-C only (~29 GB)
 python -m scribe.download_data --chipseq   # ChIP-seq only (~6.8 GB)
 ```
 
-## Quick Start
-
 ### Loading Data by Cell Type (Recommended)
 
-The high-level `DataPipeline` loads data by cell type, automatically finding files in `~/.scribe/data/`:
+The high-level `DataPipeline` loads raw Hi-C and ChIP-seq files, processes them (pooling, normalization), and prepares model-ready inputs:
 
 ```python
 from scribe.data_pipeline import DataPipeline
