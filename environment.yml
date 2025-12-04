@@ -32,3 +32,4 @@ dependencies:
         - codetiming
         - m2r
         - hic-straw
+        - jsbeautifier

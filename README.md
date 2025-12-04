@@ -32,15 +32,6 @@ The 3D organization of chromatin plays a critical role in gene regulation. SCRIB
 - O(N) complexity via Theoretically Informed Coarse Grain (TICG) field-theoretic methods
 - No chromatin state-calling required: works directly with continuous ChIP-seq signals
 
-## Documentation
-
-Full documentation is built with [Sphinx](https://www.sphinx-doc.org/) and available at [docs/](docs/). To build locally:
-
-```bash
-make docs-open  # Build and open in browser
-make docs       # Build only
-```
-
 ## Installation
 
 ### Requirements
@@ -68,6 +59,17 @@ make all
 This command does two things:
 1. **Compiles the C++ simulation engine** (`src/`) into a Python extension module (`pyticg`) using pybind11
 2. **Installs the Python API** (`scribe/`) which provides high-level interfaces for running simulations and maximum entropy optimization
+
+## Documentation
+
+Full documentation is built with [Sphinx](https://www.sphinx-doc.org/) and available at [docs/](docs/). To build locally:
+
+```bash
+make docs-open  # Build and open in browser
+make docs       # Build only
+```
+
+
 
 ### Data Setup
 
