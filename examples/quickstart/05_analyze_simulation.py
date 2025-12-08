@@ -18,15 +18,15 @@ Output:
 import numpy as np
 from scipy.stats import pearsonr
 
-from scribe.analysis import compare_analysis, sim_analysis
-from scribe.epilib import SCC
+from scribe.analysis_pipeline import compare_analysis, sim_analysis
+from scribe.analysis import SCC
 from scribe.scribe_sim import ScribeSim
 
 
 def main():
     # Load a completed simulation
     try:
-        sim = ScribeSim(root="output", load=True)
+        sim = ScribeSim.from_directory("output")
     except Exception as e:
         print(f"Could not load simulation from 'output/': {e}")
         print("Run 03_run_simulation.py first.")

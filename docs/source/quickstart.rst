@@ -151,7 +151,7 @@ The ``MaxentPipeline`` class is a high-level wrapper for spawning multiple maxim
 .. code-block:: python
 
    from scribe.maxent_pipeline import MaxentPipeline
-   from scribe import epilib as ep
+   from scribe import analysis
    from scribe import default
    import functools
    import numpy as np
@@ -163,7 +163,7 @@ The ``MaxentPipeline`` class is a high-level wrapper for spawning multiple maxim
 
    # Sweep over different numbers of principal components
    for k in range(1, 11):
-       seqs_method = functools.partial(ep.get_sequences, k=k)
+       seqs_method = functools.partial(analysis.get_sequences, k=k)
        pipe = MaxentPipeline(
            name=f"pc_{k}",
            gthic=experimental_hic,

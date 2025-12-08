@@ -216,7 +216,7 @@ The `MaxentPipeline` class is a high-level wrapper for spawning multiple maximum
 
 ```python
 from scribe.maxent_pipeline import MaxentPipeline
-from scribe import epilib as ep
+from scribe import analysis
 from scribe import default
 import functools
 import numpy as np
@@ -228,7 +228,7 @@ params = default.params.copy()
 
 # Sweep over different numbers of principal components
 for k in range(1, 11):
-    seqs_method = functools.partial(ep.get_sequences, k=k)
+    seqs_method = functools.partial(analysis.get_sequences, k=k)
     pipe = MaxentPipeline(
         name=f"pc_{k}",
         gthic=experimental_hic,
@@ -245,15 +245,15 @@ Analyze simulation results and compare predicted contact maps to experimental Hi
 
 ```python
 from scribe.scribe_sim import ScribeSim
-from scribe.analysis import sim_analysis, compare_analysis
-from scribe.epilib import SCC
+from scribe.analysis_pipeline import sim_analysis, compare_analysis
+from scribe.analysis import SCC
 from scipy.stats import pearsonr
 import numpy as np
 
-# Load a completed simulation
-sim = ScribeSim(root="output", load=True)
+# Load simulation via dispatcher
+sim = ScribeSim.from_directory("output")
 
-# Basic analysis: energy convergence, contact map visualization
+# Full analysis: energy, contact map, observables, χ parameters
 sim_analysis(sim)
 
 # Compare to experimental Hi-C (ground truth)
@@ -301,32 +301,45 @@ plt.savefig("training_progress.png")
 
 ## Software Architecture
 
+SCRIBE follows a layered architecture separating simulation dispatch, result analysis, and pipeline orchestration:
+
 ```
 SCRIBE-chromatin/
-├── src/                 # C++ simulation engine (TICG core)
-├── scribe/               # Python interface and analysis tools
-│   ├── scribe_sim.py         # High-level simulation interface
-│   ├── maxent.py        # Maximum entropy optimizer
-│   ├── pipeline.py      # End-to-end workflow automation
-│   ├── data_pipeline.py  # High-level data loading by cell type
-│   ├── data_loader.py    # Low-level file loading (.hic, .bigWig)
-│   ├── analysis.py      # Analysis and visualization
-│   └── default.py       # Default configurations
-├── examples/            # Tutorial notebooks and scripts
-├── defaults/            # Default configuration files
-└── scripts/             # Analysis and batch processing scripts
+├── src/                      # C++ simulation engine (TICG core)
+├── scribe/                   # Python interface and analysis tools
+│   ├── scribe_sim.py         # Simulation dispatcher (ScribeSim)
+│   ├── analysis.py           # Result inspection (SimulationResult, metrics)
+│   ├── analysis_pipeline.py  # Analysis workflows (sim_analysis, compare_analysis)
+│   ├── maxent.py             # Maximum entropy optimizer (Maxent)
+│   ├── maxent_pipeline.py    # MaxEnt workflow automation (MaxentPipeline)
+│   ├── data_pipeline.py      # High-level data loading by cell type
+│   ├── data_loader.py        # Low-level file loading (.hic, .bigWig)
+│   └── default.py            # Default configurations
+├── examples/                 # Tutorial notebooks and scripts
+├── defaults/                 # Default configuration files
+└── tests/                    # Unit and integration tests
 ```
 
 ### Module Hierarchy
 
-| Module | Level | Description |
-|--------|-------|-------------|
-| `scribe_engine` | Low | C++ extension (pybind11 wrapper) |
-| `scribe_sim.ScribeSim` | High | Simulation setup, execution, and I/O |
-| `maxent.Maxent` | Low | Core maximum entropy optimization |
-| `maxent_pipeline.MaxentPipeline` | High | Maximum entropy optimization workflow |
-| `data_pipeline.DataPipeline` | High | Load data by cell type from ~/.scribe/data/ |
-| `data_loader.DataLoader` | Low | Load from specific .hic and .bigWig files |
+The Python API is organized into three conceptual layers:
+
+| Module | Role | Description |
+|--------|------|-------------|
+| `scribe_engine` | Engine | C++ extension (pybind11 wrapper) for TICG simulation |
+| `scribe_sim.ScribeSim` | Dispatcher | Set up, configure, and run simulations |
+| `analysis.SimulationResult` | Inspector | Load and analyze completed simulation outputs |
+| `analysis_pipeline` | Orchestrator | High-level analysis workflows (plotting, comparison) |
+| `maxent.Maxent` | Optimizer | Core maximum entropy optimization loop |
+| `maxent_pipeline.MaxentPipeline` | Orchestrator | Spawn and manage multiple MaxEnt runs |
+| `data_pipeline.DataPipeline` | Loader | Load Hi-C/ChIP-seq by cell type from ~/.scribe/data/ |
+| `data_loader.DataLoader` | Loader | Low-level file I/O for .hic and .bigWig files |
+
+### Design Philosophy
+
+- **ScribeSim** (dispatcher): Handles simulation lifecycle—configuration, execution, checkpointing
+- **SimulationResult** (inspector): Reads completed simulation outputs for analysis and metric computation  
+- **analysis_pipeline** (orchestrator): Combines analysis steps into reusable workflows
 
 ## Examples
 

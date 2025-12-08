@@ -3,34 +3,62 @@ Analysis
 
 SCRIBE provides tools for analyzing simulation results and comparing predictions to experimental data.
 
-Simulation Analysis
--------------------
+The analysis API is organized into two modules:
 
-Analyze simulation results and compare predicted contact maps to experimental Hi-C:
+- **analysis.py**: Low-level result inspection via ``SimulationResult`` class, plus metrics (``SCC``, ``get_diagonal``, etc.)
+- **analysis_pipeline.py**: High-level workflows (``sim_analysis``, ``compare_analysis``) that orchestrate multiple analysis steps
+
+Inspecting Simulation Results
+-----------------------------
+
+Use ``SimulationResult`` to load and inspect completed simulation outputs:
+
+.. code-block:: python
+
+   from scribe.analysis import SimulationResult, SCC
+   from scipy.stats import pearsonr
+   import numpy as np
+
+   # Load a completed simulation's outputs
+   result = SimulationResult("output/production_out")
+
+   # Access simulation data
+   print(f"Contact map shape: {result.hic.shape}")
+   print(f"Energy trajectory: {len(result.energy)} steps")
+   print(f"Number of sequences: {result.k}")
+
+   # Compute metrics against experimental data
+   experimental_hic = np.load("experimental_hic.npy")
+   scc = SCC(result.hic, experimental_hic)
+   pearson_r, _ = pearsonr(result.hic.flatten(), experimental_hic.flatten())
+   print(f"SCC: {scc:.3f}, Pearson r: {pearson_r:.3f}")
+
+   # Generate plots
+   result.plot_contactmap()
+   result.plot_energy()
+
+Analysis Pipelines
+------------------
+
+Use the high-level pipeline functions for comprehensive analysis workflows:
 
 .. code-block:: python
 
    from scribe.scribe_sim import ScribeSim
-   from scribe.analysis import sim_analysis, compare_analysis
-   from scribe.epilib import SCC
-   from scipy.stats import pearsonr
+   from scribe.analysis_pipeline import sim_analysis, compare_analysis
+   from scribe.analysis import SCC
    import numpy as np
 
-   # Load a completed simulation
-   sim = ScribeSim(root="output", load=True)
+   # Load simulation via dispatcher (knows output structure)
+   sim = ScribeSim.from_directory("output")
 
-   # Basic analysis: energy convergence, contact map visualization
+   # Full analysis: energy, contact map, observables, χ parameters
    sim_analysis(sim)
 
    # Compare to experimental Hi-C (ground truth)
    experimental_hic = np.load("experimental_hic.npy")
    sim.gthic = experimental_hic
    compare_analysis(sim)  # Generates comparison plots (scatter, triangle, difference)
-
-   # Quantitative metrics
-   scc = SCC(sim.hic, experimental_hic)           # Stratum-adjusted correlation
-   pearson_r, _ = pearsonr(sim.hic.flatten(), experimental_hic.flatten())
-   print(f"SCC: {scc:.3f}, Pearson r: {pearson_r:.3f}")
 
 Output Files
 ^^^^^^^^^^^^
