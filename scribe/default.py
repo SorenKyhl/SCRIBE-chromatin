@@ -350,12 +350,21 @@ class _LazyPath:
         return self._value
 
 
-# Legacy path variables - these will be None if data not downloaded
-HCT116_hic = get_hic_path("HCT116_auxin")
-HCT116_chipseq = get_chipseq_dir("HCT116", "hg19")
+# Legacy path variables - lazy-loaded to avoid warnings when not used
+def _get_hct116_hic():
+    return get_hic_path("HCT116_auxin")
+
+def _get_hct116_chipseq():
+    return get_chipseq_dir("HCT116", "hg19")
+
+def _get_gm12878_hic():
+    return get_hic_path("GM12878")
+
+HCT116_hic = _LazyPath(_get_hct116_hic)
+HCT116_chipseq = _LazyPath(_get_hct116_chipseq)
 
 # Optional: GM12878 (not required for basic usage)
-GM12878_hic = get_hic_path("GM12878")
+GM12878_hic = _LazyPath(_get_gm12878_hic)
 
 # Legacy cache paths
 HCT116_hic_20k = {

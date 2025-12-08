@@ -2,11 +2,11 @@ import sys
 
 import matplotlib.pyplot as plt
 
-from scribe import epilib
+from scribe import analysis
 
 
 def plot_contactmap(sim_dir):
-    sim = epilib.Sim(sim_dir)
+    sim = analysis.SimulationResult(sim_dir)
     sim.plot_contactmap()
     plt.savefig("contactmap.png")
 

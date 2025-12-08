@@ -23,7 +23,7 @@ import numpy as np
 import scipy.ndimage as ndimage
 from skimage.measure import block_reduce
 
-from scribe import default, epilib
+from scribe import analysis, default
 
 
 def pool(inp, factor, fn=np.nansum, normalize=True):
@@ -152,9 +152,9 @@ def unpool(inp, factor):
 def pool_d(hic, factor):
     """downsize hic matrix and return downsized diagonal"""
     x = pool(hic, factor, np.nansum)
-    diag = epilib.get_diagonal(x)
+    diag = analysis.get_diagonal(x)
     x /= max(diag)
-    return epilib.get_diagonal(x)
+    return analysis.get_diagonal(x)
 
 
 def sparsity(x):
@@ -243,7 +243,7 @@ def load_seqs(nbeads, k, chrom="2", cell="HCT116_auxin"):
         nbeads_large = 20480
         gthic = load_hic(nbeads_large, chrom=chrom, cell=cell)
         gthic = smooth_hic(gthic)  # this step is very important
-        seqs = epilib.get_sequences(gthic, k, randomized=True, correct_PCA=True)
+        seqs = analysis.get_sequences(gthic, k, randomized=True, correct_PCA=True)
         np.save(seqs_file, seqs)
     else:
         seqs = np.load(seqs_file)

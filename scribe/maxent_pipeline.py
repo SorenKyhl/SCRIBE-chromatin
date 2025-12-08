@@ -9,7 +9,7 @@ plt.rcParams.update({"font.size": 18})
 
 
 import scribe.maxent as me
-from scribe import epilib as ep
+from scribe import analysis
 
 
 class MaxentPipeline:
@@ -33,8 +33,8 @@ class MaxentPipeline:
         config,
         params,
         load_first=False,
-        seqs_method=functools.partial(ep.get_sequences, k=10),  # default is pca with k=10
-        goals_method=ep.get_goals,
+        seqs_method=functools.partial(analysis.get_sequences, k=10),  # default is pca with k=10
+        goals_method=analysis.get_goals,
         analysis_on=True,
         initial_chis=None,
     ):

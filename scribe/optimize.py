@@ -7,7 +7,7 @@ from bayes_opt import BayesianOptimization
 from scipy import optimize
 from sklearn.metrics import mean_squared_error
 
-from scribe import default, epilib, utils
+from scribe import analysis, default, utils
 from scribe.scribe_sim import ScribeSim
 
 """
@@ -60,9 +60,9 @@ def nearest_neighbor_contact_error(grid_bond_ratio, sim_engine, gthic):
     sim_engine.run(output)
 
     output_dir = osp.join(sim_engine.root, output)
-    sim_analysis = epilib.Sim(output_dir, maxent_analysis=False)
+    sim_analysis = analysis.SimulationResult(output_dir, maxent_analysis=False)
     p1_sim = sim_analysis.d[1]
-    p1_exp = epilib.get_diagonal(gthic)[1]
+    p1_exp = analysis.get_diagonal(gthic)[1]
     error = p1_sim - p1_exp
     print(f"error, {error}")
     return error
@@ -93,9 +93,9 @@ def nearest_neighbor_contact_error_bond(grid_bond_ratio, sim_engine, gthic):
     sim_engine.run(output)
 
     output_dir = osp.join(sim_engine.root, output)
-    sim_analysis = epilib.Sim(output_dir, maxent_analysis=False)
+    sim_analysis = analysis.SimulationResult(output_dir, maxent_analysis=False)
     p1_sim = sim_analysis.d[1]
-    p1_exp = epilib.get_diagonal(gthic)[1]
+    p1_exp = analysis.get_diagonal(gthic)[1]
     error = p1_sim - p1_exp
     print(f"error, {error}")
     return error
@@ -201,21 +201,21 @@ def stiffness_root_error(hic, gthic):
     index = int(4 * nbeads / 1024) - 1
     # index = int(6*nbeads/1024) - 1
     # index = int(100*nbeads/1024) - 1
-    return epilib.get_diagonal(hic)[index] - epilib.get_diagonal(gthic)[index]
+    return analysis.get_diagonal(hic)[index] - analysis.get_diagonal(gthic)[index]
 
-    gthic_d = epilib.get_diagonal(gthic)
-    hic_d = epilib.get_diagonal(hic)
+    gthic_d = analysis.get_diagonal(gthic)
+    hic_d = analysis.get_diagonal(hic)
 
     id_start = int(200 * nbeads / 1024)
     id_end = int(800 * nbeads / 1024)
     return np.mean(gthic_d[id_start:id_end]) - np.mean(hic_d[id_start:id_end])
-    # return np.mean(epilib.get_diagonal(hic) - epilib.get_diagonal(gthic))
+    # return np.mean(analysis.get_diagonal(hic) - analysis.get_diagonal(gthic))
 
 
 def stiffness_bayes_error(hic, gthic):
     """error used for bayesian optimization"""
-    sim = epilib.get_diagonal(hic)
-    exp = epilib.get_diagonal(gthic)
+    sim = analysis.get_diagonal(hic)
+    exp = analysis.get_diagonal(gthic)
     return mean_squared_error(sim, exp, squared=False)
 
 
@@ -243,7 +243,7 @@ def simulate_stiffness_error(k_angle, sim_engine, gthic, method):
     sim_engine.run(output)
 
     output_dir = osp.join(sim_engine.root, output)
-    sim_analysis = epilib.Sim(output_dir, maxent_analysis=False)
+    sim_analysis = analysis.SimulationResult(output_dir, maxent_analysis=False)
 
     if method == "bayes":
         # bayes method maximizes, so return negative of error

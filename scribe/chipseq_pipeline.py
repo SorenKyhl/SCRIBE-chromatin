@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.ndimage
 
-from scribe import epilib
+from scribe import analysis
 
 
 class ChipseqPipeline:
@@ -34,7 +34,7 @@ class Normalize:
 
     def operate(self, x):
         # parameter: scaling not exposed
-        normalized = epilib.new_map_0_1_chip(x)
+        normalized = analysis.new_map_0_1_chip(x)
         centered = 2 * normalized - 1
         return centered
 

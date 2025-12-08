@@ -10,7 +10,7 @@ the parameters converge more smoothly to the optimal values.
 
 import numpy as np
 
-from scribe import epilib as ep
+from scribe import analysis
 from scribe import utils
 from scribe.maxent import Maxent
 
@@ -31,7 +31,7 @@ def dampen(gamma, me_path="me-1024", it=0):
         >>> # If optimization at gamma=1.0 oscillates, try dampening:
         >>> dampen(0.5, "maxent_output", it=5)
     """
-    it0 = ep.Sim(me_path + f"/iteration{it}/production_out")
+    it0 = analysis.SimulationResult(me_path + f"/iteration{it}/production_out")
     params = utils.load_json(me_path + "/resources/params.json")
     config = utils.load_json(me_path + f"/iteration{it}/config.json")
     gthic = np.load(me_path + "/resources/experimental_hic.npy")

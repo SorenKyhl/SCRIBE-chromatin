@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import pyBigWig
 
-from scribe import epilib
+from scribe import analysis
 from scribe import hic as hiclib
 
 
@@ -31,7 +31,16 @@ def get_experiment_marks(directory):
     """
     directory = Path(directory)
     metadata = pd.read_csv(directory / "metadata.tsv", sep="\t")
-    marks = metadata["Experiment target"].apply(lambda s: s.split("-")[0])
+    
+    # Support both "Experiment target" (ENCODE format) and "Target" (simplified format)
+    if "Experiment target" in metadata.columns:
+        target_col = "Experiment target"
+    elif "Target" in metadata.columns:
+        target_col = "Target"
+    else:
+        raise KeyError(f"metadata.tsv must have 'Experiment target' or 'Target' column. Found: {list(metadata.columns)}")
+    
+    marks = metadata[target_col].apply(lambda s: s.split("-")[0])
     lookup_table = dict(zip(metadata["File accession"], marks))
     return lookup_table
 
@@ -97,7 +106,7 @@ class DataLoader:
         """
         filename = str(filename)  # hicstraw doesn't accept pathlib objects
         hic = hicstraw.HiCFile(filename)
-        contactmap = epilib.load_contactmap_hicstraw(
+        contactmap = analysis.load_contactmap_hicstraw(
             hic, self.res, self.chrom, self.start, self.end, KR=KR
         )
 
@@ -106,7 +115,7 @@ class DataLoader:
         )  # used for loading the correct number of chipseq bins
 
         if clean:
-            contactmap, self.dropped_inds = epilib.clean_contactmap(contactmap)
+            contactmap, self.dropped_inds = analysis.clean_contactmap(contactmap)
 
         # set main diag to one (on average)
         if rescale_method:
@@ -246,7 +255,7 @@ class DataLoader:
         """
         assert method in ["mean", "max"]
         df = pd.read_csv(filename, sep="\t", names=["start", "end", "value"], skiprows=1)
-        chip = epilib.bin_chipseq(df, self.res, method=method)
+        chip = analysis.bin_chipseq(df, self.res, method=method)
         chip = np.nan_to_num(chip)
         return chip
 

@@ -3,7 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-from scribe import default, epilib, hic, parameters, utils
+from scribe import analysis, default, hic, parameters, utils
 from scribe.config import Config
 from scribe.ideal_chain import ideal_chain_simulation
 from scribe.maxent import Maxent
@@ -23,36 +23,36 @@ def plot_stiffness_error(ideal_small, ideal_large, gthic_big, pool_fn):
     factor = int(len(ideal_large.hic) / len(ideal_small.hic))
     id_pooled = pool_fn(ideal_large.hic, factor)
 
-    ratio_pooled = epilib.get_diagonal(id_pooled) / epilib.get_diagonal(gthic_small)
-    ratio_sim = ideal_small.d / epilib.get_diagonal(gthic_small)
+    ratio_pooled = analysis.get_diagonal(id_pooled) / analysis.get_diagonal(gthic_small)
+    ratio_sim = ideal_small.d / analysis.get_diagonal(gthic_small)
 
     ratio2 = ratio_sim / ratio_pooled
 
     error = np.mean(ratio2[100:700])
 
     # optional:
-    # epilib.plot_diagonal(gthic2k, 'k', scale='loglog')
-    # epilib.plot_diagonal(id2k.d, label="ideal 2k")
+    # analysis.plot_diagonal(gthic2k, 'k', scale='loglog')
+    # analysis.plot_diagonal(id2k.d, label="ideal 2k")
 
-    # epilib.plot_diagonal(gthic1k, 'k')
-    epilib.plot_diagonal(ideal_small.d, label="stiff optimal", scale="loglog")
-    epilib.plot_diagonal(id_pooled, label="pooled ideal 2k")
+    # analysis.plot_diagonal(gthic1k, 'k')
+    analysis.plot_diagonal(ideal_small.d, label="stiff optimal", scale="loglog")
+    analysis.plot_diagonal(id_pooled, label="pooled ideal 2k")
     plt.legend()
     plt.title("p(s) stiff vs pooled")
     plt.savefig("stiff_p.png")
     plt.close()
 
     plt.figure()
-    epilib.plot_diagonal(ratio_sim, label="stiff", scale="loglog")
-    epilib.plot_diagonal(ratio_pooled, label="pooled")
+    analysis.plot_diagonal(ratio_sim, label="stiff", scale="loglog")
+    analysis.plot_diagonal(ratio_pooled, label="pooled")
     plt.legend()
     plt.title("p(s) ratio stiff vs pooled")
     plt.savefig("stiff_ratios.png")
     plt.close()
 
     plt.figure()
-    epilib.plot_diagonal(ratio2, scale="loglog")
-    epilib.plot_diagonal(np.ones(1024), "k")
+    analysis.plot_diagonal(ratio2, scale="loglog")
+    analysis.plot_diagonal(np.ones(1024), "k")
     plt.title(f"ratio of ratios, mean: {error}")
     plt.savefig("stiff_ratio_ratios.png")
     plt.close()
@@ -254,12 +254,12 @@ def scaleup(
 
     # plot results
     final_it_stiff = utils.get_last_iteration("optimize-stiffness")
-    ideal_small = epilib.Sim(final_it_stiff)
-    ideal_large = epilib.Sim(f"ideal-chain-{str(nbeads_large)}/data_out")
+    ideal_small = analysis.SimulationResult(final_it_stiff)
+    ideal_large = analysis.SimulationResult(f"ideal-chain-{str(nbeads_large)}/data_out")
     plot_stiffness_error(ideal_small, ideal_large, gthic_large, pool_fn)
 
     # maxent at small size
-    goals = epilib.get_goals(gthic_small, seqs_small, config_small)
+    goals = analysis.get_goals(gthic_small, seqs_small, config_small)
     params = default.params
     params["goals"] = goals
 
