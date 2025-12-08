@@ -81,12 +81,16 @@ class DataPipeline:
         self.cache = cache
 
         # High-resolution loading - use a fixed resolution that's available in .hic files
-        self.highres_resolution = highres_resolution if highres_resolution is not None else self.DEFAULT_HIGHRES_RESOLUTION
-        
+        self.highres_resolution = (
+            highres_resolution
+            if highres_resolution is not None
+            else self.DEFAULT_HIGHRES_RESOLUTION
+        )
+
         # Calculate genomic coordinates
         # We load extra region to account for bins dropped during cleaning
         self.start = start if start is not None else self.DEFAULT_START
-        
+
         if end is not None:
             self.end = end
         else:
@@ -98,7 +102,7 @@ class DataPipeline:
             # Align end to bufsize boundary (bufsize = 1000 * highres_resolution in epilib)
             bufsize = 1000 * self.highres_resolution
             self.end = ((raw_end // bufsize) + 1) * bufsize  # Round up to next buffer boundary
-        
+
         # Calculate how many high-res beads we'll load
         self.highres_beads = (self.end - self.start) // self.highres_resolution
 
@@ -212,11 +216,11 @@ class DataPipeline:
                 f"Hi-C data has {self._cleaned_size} bins after cleaning, but nbeads={self.nbeads}. "
                 f"Try reducing nbeads or specifying a larger genomic region with 'end' parameter."
             )
-        
+
         # Find the largest pooling factor that gives at least nbeads
         factor = self._cleaned_size // self.nbeads
         usable_size = factor * self.nbeads
-        
+
         # Trim to usable size (symmetric matrix)
         gthic = gthic[:usable_size, :usable_size]
 
@@ -279,7 +283,7 @@ class DataPipeline:
         # Pool sequences to target nbeads (same factor as Hi-C)
         factor = self._cleaned_size // self.nbeads if self._cleaned_size > self.nbeads else 1
         usable_size = factor * self.nbeads
-        
+
         seqs_pooled = {}
         for name, seq in seqs_raw.items():
             # Handle None values
@@ -381,17 +385,20 @@ class SyntheticDataPipeline(DataPipeline):
     Data pipeline that returns synthetic (all-zero) Hi-C and ChIP-seq data.
     Useful for testing installation, configuration, and workflows without requiring downloads.
     """
+
     def __init__(self, nbeads=128, nspecies=10, **kwargs):
         self._nspecies = nspecies
         super().__init__(cell="SYNTHETIC", chrom=1, nbeads=nbeads, **kwargs)
 
     def load_hic(self):
         import numpy as np
+
         return np.zeros((self.nbeads, self.nbeads))
 
     def load_chipseq(self):
         """Return synthetic ChIP-seq data as 2D array (nspecies, nbeads)."""
         import numpy as np
+
         return np.zeros((self._nspecies, self.nbeads))
 
 

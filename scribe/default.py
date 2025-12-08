@@ -354,11 +354,14 @@ class _LazyPath:
 def _get_hct116_hic():
     return get_hic_path("HCT116_auxin")
 
+
 def _get_hct116_chipseq():
     return get_chipseq_dir("HCT116", "hg19")
 
+
 def _get_gm12878_hic():
     return get_hic_path("GM12878")
+
 
 HCT116_hic = _LazyPath(_get_hct116_hic)
 HCT116_chipseq = _LazyPath(_get_hct116_chipseq)

@@ -18,7 +18,6 @@ Example:
 """
 
 # Core simulation classes
-from scribe.scribe_sim import ScribeSim
 from scribe.analysis import SimulationResult
 
 # High-level data loading
@@ -26,10 +25,11 @@ from scribe.data_pipeline import DataPipeline, SyntheticDataPipeline
 
 # Optimization
 from scribe.maxent import Maxent
+from scribe.scribe_sim import ScribeSim
 
 __all__ = [
     "ScribeSim",
-    "SimulationResult", 
+    "SimulationResult",
     "DataPipeline",
     "SyntheticDataPipeline",
     "Maxent",

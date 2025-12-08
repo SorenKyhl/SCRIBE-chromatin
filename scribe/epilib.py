@@ -11,7 +11,7 @@ import warnings
 
 # Re-export everything from analysis for backward compatibility
 from scribe.analysis import *  # noqa: F401, F403
-from scribe.analysis import SimulationResult, Sim  # noqa: F401
+from scribe.analysis import Sim, SimulationResult  # noqa: F401
 
 warnings.warn(
     "scribe.epilib is deprecated. Use scribe.analysis instead. "

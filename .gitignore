@@ -80,3 +80,9 @@ simulations/
 *.tmp
 *.bak
 .nf
+
+# Example output files
+examples/quickstart/*.png
+examples/quickstart/*.npy
+examples/quickstart/output/
+examples/synthetic_simulation/

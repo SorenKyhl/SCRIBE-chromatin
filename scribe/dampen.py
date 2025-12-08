@@ -10,8 +10,7 @@ the parameters converge more smoothly to the optimal values.
 
 import numpy as np
 
-from scribe import analysis
-from scribe import utils
+from scribe import analysis, utils
 from scribe.maxent import Maxent
 
 

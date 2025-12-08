@@ -31,15 +31,17 @@ def get_experiment_marks(directory):
     """
     directory = Path(directory)
     metadata = pd.read_csv(directory / "metadata.tsv", sep="\t")
-    
+
     # Support both "Experiment target" (ENCODE format) and "Target" (simplified format)
     if "Experiment target" in metadata.columns:
         target_col = "Experiment target"
     elif "Target" in metadata.columns:
         target_col = "Target"
     else:
-        raise KeyError(f"metadata.tsv must have 'Experiment target' or 'Target' column. Found: {list(metadata.columns)}")
-    
+        raise KeyError(
+            f"metadata.tsv must have 'Experiment target' or 'Target' column. Found: {list(metadata.columns)}"
+        )
+
     marks = metadata[target_col].apply(lambda s: s.split("-")[0])
     lookup_table = dict(zip(metadata["File accession"], marks))
     return lookup_table
