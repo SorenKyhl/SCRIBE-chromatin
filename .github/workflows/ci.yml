@@ -22,6 +22,11 @@ jobs:
           python-version: "3.10"
           auto-activate-base: false
 
+      - name: Build C++ extension
+        shell: bash -el {0}
+        run: |
+          make build
+
       - name: Run tests
         shell: bash -el {0}
         run: |
@@ -77,6 +82,11 @@ jobs:
           environment-file: environment.yml
           python-version: "3.10"
           auto-activate-base: false
+
+      - name: Build C++ extension
+        shell: bash -el {0}
+        run: |
+          make build
 
       - name: Build documentation
         shell: bash -el {0}
