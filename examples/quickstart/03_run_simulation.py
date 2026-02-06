@@ -44,14 +44,14 @@ def main():
     # Update config to match our sequences
     config["nspecies"] = nspecies
     config["nbeads"] = nbeads
-    
+
     # Resize chi matrix to match nspecies (default is 10x10, we have 6 species)
     # Initialize with zeros - these would be optimized via maxent
     config["chis"] = [[0.0] * nspecies for _ in range(nspecies)]
-    
+
     # Update bead type files list to match nspecies
     config["bead_type_files"] = [f"pcf{i+1}.txt" for i in range(nspecies)]
-    
+
     print(f"Config: nspecies={config['nspecies']}, nbeads={config['nbeads']}")
 
     # Clean up previous output if it exists

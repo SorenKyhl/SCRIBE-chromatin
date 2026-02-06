@@ -169,15 +169,13 @@ def print_manual_instructions():
     print("\n" + "-" * 70)
     print("Environment Variable")
     print("-" * 70)
-    print(
-        """
+    print("""
 To use a custom data location, set SCRIBE_DATA_DIR:
 
     export SCRIBE_DATA_DIR=/path/to/your/data
 
 Add this to your ~/.bashrc or ~/.zshrc to make it permanent.
-"""
-    )
+""")
 
 
 def check_data_status():

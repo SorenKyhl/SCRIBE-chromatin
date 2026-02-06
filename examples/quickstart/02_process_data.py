@@ -90,7 +90,7 @@ def visualize_data(hic, seqs, marks):
     plt.title("Experimental Hi-C Contact Map (chr2)")
     plt.xlabel("Genomic position (100kb bins)")
     plt.ylabel("Genomic position (100kb bins)")
-    plt.savefig("hic_contactmap.png", dpi=150, bbox_inches='tight')
+    plt.savefig("hic_contactmap.png", dpi=150, bbox_inches="tight")
     print("  Saved: hic_contactmap.png")
     plt.close()
 
@@ -103,19 +103,19 @@ def visualize_data(hic, seqs, marks):
         s = seqs_norm[i]
         seqs_norm[i] = (s - s.min()) / (s.max() - s.min() + 1e-10)
 
-    im = ax.imshow(seqs_norm, aspect='auto', cmap='viridis')
+    im = ax.imshow(seqs_norm, aspect="auto", cmap="viridis")
     ax.set_xlabel("Genomic position (100kb bins)")
     ax.set_ylabel("ChIP-seq track")
     ax.set_yticks(range(len(marks)))
     ax.set_yticklabels(marks)
     ax.set_title("ChIP-seq Signal Tracks (normalized)")
     plt.colorbar(im, ax=ax, label="Normalized signal")
-    plt.savefig("chipseq_heatmap.png", dpi=150, bbox_inches='tight')
+    plt.savefig("chipseq_heatmap.png", dpi=150, bbox_inches="tight")
     print("  Saved: chipseq_heatmap.png")
     plt.close()
 
     # Plot 3: ChIP-seq tracks as line plots
-    fig, axes = plt.subplots(len(marks), 1, figsize=(14, 2*len(marks)), sharex=True)
+    fig, axes = plt.subplots(len(marks), 1, figsize=(14, 2 * len(marks)), sharex=True)
     if len(marks) == 1:
         axes = [axes]
 
@@ -131,7 +131,7 @@ def visualize_data(hic, seqs, marks):
     axes[-1].set_xlabel("Genomic position (100kb bins)")
     fig.suptitle("ChIP-seq Signal Tracks", fontsize=14)
     plt.tight_layout()
-    plt.savefig("chipseq_tracks.png", dpi=150, bbox_inches='tight')
+    plt.savefig("chipseq_tracks.png", dpi=150, bbox_inches="tight")
     print("  Saved: chipseq_tracks.png")
     plt.close()
 
@@ -145,7 +145,9 @@ def visualize_data(hic, seqs, marks):
     print(f"\nChIP-seq:")
     print(f"  Shape: {seqs.shape}")
     for i, mark in enumerate(marks):
-        print(f"  {mark}: min={seqs[i].min():.3f}, max={seqs[i].max():.3f}, mean={seqs[i].mean():.3f}")
+        print(
+            f"  {mark}: min={seqs[i].min():.3f}, max={seqs[i].max():.3f}, mean={seqs[i].mean():.3f}"
+        )
 
 
 def main():
