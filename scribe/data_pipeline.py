@@ -186,9 +186,12 @@ class DataPipeline:
 
         # Check cache first
         cache_path = self._get_cache_path("hic_highres")
+        dropped_inds_path = self._get_cache_path("dropped_inds")
         if self.cache and cache_path.exists() and not force_reload:
             gthic = np.load(cache_path)
             self._cleaned_size = len(gthic)
+            if dropped_inds_path.exists():
+                self._dropped_inds = np.load(dropped_inds_path).tolist()
         else:
             # Find Hi-C file
             hic_path = self._get_hic_path()
@@ -203,10 +206,11 @@ class DataPipeline:
             self._dropped_inds = self.loader.dropped_inds
             self._cleaned_size = len(gthic)
 
-            # Cache the high-res cleaned data
+            # Cache the high-res cleaned data and dropped indices
             if self.cache:
                 self.cache_dir.mkdir(parents=True, exist_ok=True)
                 np.save(cache_path, gthic)
+                np.save(dropped_inds_path, np.array(self._dropped_inds))
 
         # Pool down to target nbeads
         # After cleaning, we need at least nbeads worth of high-res bins

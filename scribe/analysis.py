@@ -110,7 +110,7 @@ class SimulationResult:
             self.beadvol = self.config["beadvol"]
             self.nbeads = self.config["nbeads"]
         except Exception:
-            logging.error("error loading extra observables")
+            logging.debug("extra observables not found (optional)")
 
         resources_path = self.path / "../../resources/"
         if resources_path.exists():
@@ -139,15 +139,13 @@ class SimulationResult:
             if obj_goal_path.exists():
                 self.obj_goal = np.loadtxt(obj_goal_path)
             else:
-                logging.error("no path to obj_goal.txt")
-                logging.error(f"looking in obj_goal_path: {obj_goal_path}")
+                logging.debug(f"obj_goal.txt not found at {obj_goal_path}")
 
             obj_goal_diag_path = resources_path / "obj_goal_diag.txt"
             if obj_goal_diag_path.exists():
                 self.obj_goal_diag = np.loadtxt(obj_goal_diag_path)
             else:
-                logging.error("no path to obj_goal_diag.txt")
-                logging.error(f"looking in obj_goal_diag_path: {obj_goal_path}")
+                logging.debug(f"obj_goal_diag.txt not found at {obj_goal_diag_path}")
 
             try:
                 self.obj_goal_tot = np.hstack((self.obj_goal, self.obj_goal_diag))
@@ -490,8 +488,6 @@ def plot_contactmap(
         contact = np.log10(contact + 1e-20)
         vmin = np.min(contact[np.where(contact > -19)])
         vmax = vmin / 3
-        print("vmiin", vmin)
-        print("vmax", vmax)
 
     plot_fn(contact, cmap=cmap, vmin=vmin, vmax=vmax)
 

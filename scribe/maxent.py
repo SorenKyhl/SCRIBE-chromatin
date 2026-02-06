@@ -1,18 +1,24 @@
 import copy
+import logging
 import os
 import pickle
+import time
 from pathlib import Path
 from typing import Union
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from scribe import analysis, utils
+from scribe import analysis, analysis_pipeline, utils
 from scribe.scribe_sim import ScribeSim
 from scribe.utils import cd, newton
 
+matplotlib.set_loglevel("warning")
 plt.rcParams["figure.figsize"] = [8, 6]
 plt.rcParams.update({"font.size": 18})
+
+logger = logging.getLogger(__name__)
 
 PathLike = Union[str, Path]
 
@@ -136,30 +142,44 @@ class Maxent:
         np.save(self.root / "plaid_chis.npy", self.track_plaid_chis)
         np.save(self.root / "daig_chis.npy", self.track_diag_chis)
 
-        plt.figure()
+        fig = plt.figure()
         plt.plot(self.loss, ".-")
         plt.savefig(self.root / "loss.png")
+        plt.close(fig)
 
-        plt.figure()
+        fig = plt.figure()
         plt.plot(self.track_plaid_chis, ".-")
         plt.savefig(self.root / "track_plaid_chis.png")
+        plt.close(fig)
 
-        plt.figure()
+        fig = plt.figure()
         plt.plot(self.track_diag_chis, ".-")
         plt.savefig(self.root / "track_diag_chis.png")
+        plt.close(fig)
 
     def analyze(self):
         if self.analysis_on:
-            analysis.main()
+            analysis_pipeline.main()
 
     def fit(self):
         """execute maxent optimization"""
+
+        n_iter = self.params["iterations"]
+        logger.info(
+            "Starting maxent optimization: %d iterations, %d eq sweeps, %d prod sweeps, %d parallel",
+            n_iter,
+            self.params["equilib_sweeps"],
+            self.params["production_sweeps"],
+            self.params["parallel"],
+        )
 
         self.make_directory()
         newchis = self.initial_chis
         utils.write_json(self.params, self.resources / "params.json")
 
-        for it in range(self.params["iterations"]):
+        for it in range(n_iter):
+            t0 = time.time()
+            logger.info("--- Iteration %d/%d ---", it + 1, n_iter)
             self.save_state()
 
             sim = ScribeSim(
@@ -190,8 +210,7 @@ class Maxent:
             if self.dampen_first_step and (it == 1):
                 gamma *= 0.25
 
-            print(f"gammma = {gamma}")
-            print("self.gamma = " + str(self.params["gamma"]))
+            logger.info("Newton update (gamma=%.4f)", gamma)
 
             newchis, newloss = newton(
                 lam=obs,
@@ -212,6 +231,14 @@ class Maxent:
 
             with cd(sim.root):
                 self.analyze()
+
+            elapsed = time.time() - t0
+            logger.info(
+                "Iteration %d/%d complete: loss=%.6f (%.1fs)",
+                it + 1, n_iter, newloss, elapsed,
+            )
+
+        logger.info("Optimization complete. Final loss=%.6f", self.loss[-1])
 
     def save_state(self):
         self_copy = copy.deepcopy(self)

@@ -81,6 +81,9 @@ simulations/
 *.bak
 .nf
 
+# Results / simulation output
+results/
+
 # Example output files
 examples/quickstart/*.png
 examples/quickstart/*.npy
