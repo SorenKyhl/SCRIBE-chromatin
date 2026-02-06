@@ -94,13 +94,18 @@ _HCT116_MARKS = {
 _ENCODE_MARK_NAMES = ["H3K27ac", "H3K27me3", "H3K36me3", "H3K4me1", "H3K4me3", "H3K9me3"]
 _ALL_MARK_NAMES = list(_HCT116_MARKS.keys())
 
+# Both sets download into the same HCT116_hg19 directory.
+# --chipseq-encode downloads the 6 core marks; --chipseq-histone downloads all 12.
+# Files already present are skipped, so running both is safe and deduplicates.
 CHIPSEQ_FILES = {
-    "HCT116_hg19": {
+    "HCT116_hg19_encode": {
         "description": f"HCT116 ENCODE histone modifications ({len(_ENCODE_MARK_NAMES)} marks)",
+        "dest_dir": "HCT116_hg19",
         "files": {m: _HCT116_MARKS[m] for m in _ENCODE_MARK_NAMES},
     },
-    "HCT116_hg19_all": {
-        "description": f"HCT116 all histone modifications — ENCODE ({len(_ALL_MARK_NAMES)} marks)",
+    "HCT116_hg19_histone": {
+        "description": f"HCT116 all histone modifications ({len(_ALL_MARK_NAMES)} marks)",
+        "dest_dir": "HCT116_hg19",
         "files": {m: _HCT116_MARKS[m] for m in _ALL_MARK_NAMES},
     },
 }
@@ -168,11 +173,13 @@ def print_manual_instructions():
     print("ChIP-seq Data")
     print("-" * 70)
     for name, info in CHIPSEQ_FILES.items():
+        dest_name = info.get("dest_dir", name)
         print(f"\n{name}: {info['description']}")
         marks = list(info.get("files", {}).keys())
         print(f"  Marks: {', '.join(marks)}")
-        print(f"  Destination: {data_dir / 'chipseq' / name}/")
-        print("  Auto-download: python -m scribe.download_data --chipseq")
+        print(f"  Destination: {data_dir / 'chipseq' / dest_name}/")
+        flag = "encode" if "encode" in name else "histone"
+        print(f"  Auto-download: python -m scribe.download_data --chipseq-{flag}")
 
     print("\n" + "-" * 70)
     print("Environment Variable")
@@ -211,10 +218,24 @@ def check_data_status():
     print("\nChIP-seq Data Status:")
     print("-" * 40)
 
+    # Group by actual directory to avoid double-counting
+    seen_dirs = set()
     for name, info in CHIPSEQ_FILES.items():
-        chipseq_dir = data_dir / "chipseq" / name
+        dest_name = info.get("dest_dir", name)
+        if dest_name in seen_dirs:
+            continue
+        seen_dirs.add(dest_name)
+
+        chipseq_dir = data_dir / "chipseq" / dest_name
         bw_files = list(chipseq_dir.glob("*.bigWig")) if chipseq_dir.exists() else []
-        expected = len(info.get("files", {}))
+
+        # Count total expected across all sets sharing this directory
+        all_marks = {}
+        for _, cinfo in CHIPSEQ_FILES.items():
+            if cinfo.get("dest_dir", "") == dest_name:
+                all_marks.update(cinfo.get("files", {}))
+        expected = len(all_marks)
+
         if len(bw_files) >= expected and expected > 0:
             status = f"✓ Found ({len(bw_files)} files)"
         elif bw_files:
@@ -223,7 +244,7 @@ def check_data_status():
             status = "✗ Missing (can auto-download)"
         else:
             status = "✗ Missing"
-        print(f"  {name}: {status}")
+        print(f"  {dest_name}: {status}")
 
 
 def download_hic_data(cell_types: list = None, force: bool = False):
@@ -331,7 +352,8 @@ def download_chipseq_data(cell_types: list | None = None, force: bool = False) -
             continue
 
         info = CHIPSEQ_FILES[cell_type]
-        dest_dir = data_dir / "chipseq" / cell_type
+        dest_name = info.get("dest_dir", cell_type)
+        dest_dir = data_dir / "chipseq" / dest_name
         dest_dir.mkdir(parents=True, exist_ok=True)
 
         print(f"\n{cell_type}: {info['description']}")
@@ -362,16 +384,22 @@ def download_chipseq_data(cell_types: list | None = None, force: bool = False) -
                 if dest_path.exists():
                     dest_path.unlink()
 
-        # Create a simple metadata file
+        # Create/update metadata file to reflect all files in directory
         metadata_path = dest_dir / "metadata.tsv"
-        if not metadata_path.exists() or force:
-            with open(metadata_path, "w") as f:
-                f.write("File accession\tAssay\tBiosample\tTarget\n")
-                for mark, file_info in info["files"].items():
+        # Collect all marks across all sets that share this directory
+        all_marks_in_dir = {}
+        for _, cinfo in CHIPSEQ_FILES.items():
+            if cinfo.get("dest_dir", "") == dest_name or cinfo is info:
+                all_marks_in_dir.update(cinfo["files"])
+        # Only write marks whose files actually exist on disk
+        with open(metadata_path, "w") as f:
+            f.write("File accession\tAssay\tBiosample\tTarget\n")
+            for mark, file_info in all_marks_in_dir.items():
+                if (dest_dir / f"{file_info['accession']}.bigWig").exists():
                     f.write(
-                        f"{file_info['accession']}\tChIP-seq\t{cell_type.split('_')[0]}\t{mark}\n"
+                        f"{file_info['accession']}\tChIP-seq\t{dest_name.split('_')[0]}\t{mark}\n"
                     )
-            print("  Created metadata.tsv")
+        print("  Updated metadata.tsv")
 
     # Print summary
     print("\n" + "-" * 70)
@@ -395,7 +423,6 @@ def setup_directory_structure():
     dirs = [
         data_dir / "hic" / "HCT116_auxin",
         data_dir / "chipseq" / "HCT116_hg19",
-        data_dir / "chipseq" / "HCT116_hg19_all",
         data_dir / "cache",
     ]
 
@@ -467,7 +494,7 @@ def main():
     parser.add_argument(
         "--chipseq-histone",
         action="store_true",
-        help="Download all histone ChIP-seq marks (12 marks: HCT116_hg19_all)",
+        help="Download all histone ChIP-seq marks (12 marks: HCT116_hg19)",
     )
     parser.add_argument(
         "--status", action="store_true", help="Check which data files are available"
@@ -493,10 +520,10 @@ def main():
         # Download requested data
         if args.all or args.hic:
             download_hic_data(force=args.force)
-        if args.all or getattr(args, "chipseq_encode", False):
-            download_chipseq_data(cell_types=["HCT116_hg19"], force=args.force)
-        if getattr(args, "chipseq_histone", False):
-            download_chipseq_data(cell_types=["HCT116_hg19_all"], force=args.force)
+        if args.all or getattr(args, "chipseq_histone", False):
+            download_chipseq_data(cell_types=["HCT116_hg19_histone"], force=args.force)
+        elif getattr(args, "chipseq_encode", False):
+            download_chipseq_data(cell_types=["HCT116_hg19_encode"], force=args.force)
     elif len(sys.argv) == 1:
         # No args - show status and help
         check_data_status()
