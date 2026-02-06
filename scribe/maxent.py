@@ -10,7 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from scribe import analysis, analysis_pipeline, utils
+from scribe import analysis_pipeline, utils
 from scribe.scribe_sim import ScribeSim
 from scribe.utils import cd, newton
 
@@ -163,6 +163,10 @@ class Maxent:
 
     def fit(self):
         """execute maxent optimization"""
+
+        from scribe import __git_commit__
+
+        logger.info("SCRIBE git commit: %s", __git_commit__)
 
         n_iter = self.params["iterations"]
         logger.info(

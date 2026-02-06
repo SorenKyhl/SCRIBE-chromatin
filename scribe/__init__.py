@@ -27,10 +27,16 @@ from scribe.data_pipeline import DataPipeline, SyntheticDataPipeline
 from scribe.maxent import Maxent
 from scribe.scribe_sim import ScribeSim
 
+try:
+    from scribe._version_info import __git_commit__
+except ImportError:
+    __git_commit__ = "unknown"
+
 __all__ = [
     "ScribeSim",
     "SimulationResult",
     "DataPipeline",
     "SyntheticDataPipeline",
     "Maxent",
+    "__git_commit__",
 ]
