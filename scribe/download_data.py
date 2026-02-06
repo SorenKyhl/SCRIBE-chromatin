@@ -63,6 +63,7 @@ HIC_FILES = {
 # URLs from ENCODE portal: https://www.encodeproject.org/
 # All files are signal p-value bigWig from pooled replicates
 
+
 def _encode_mark(accession: str, experiment: str, size_mb: int) -> dict:
     """Build a mark entry from its ENCODE accession."""
     return {
@@ -72,20 +73,21 @@ def _encode_mark(accession: str, experiment: str, size_mb: int) -> dict:
         "size_mb": size_mb,
     }
 
+
 # Single registry of all HCT116 histone ChIP-seq marks (hg19, signal p-value)
 _HCT116_MARKS = {
-    "H3K27ac":  _encode_mark("ENCFF445BLD", "ENCSR661KMA", 1020),
+    "H3K27ac": _encode_mark("ENCFF445BLD", "ENCSR661KMA", 1020),
     "H3K27me3": _encode_mark("ENCFF977LFP", "ENCSR810BDB", 1200),
     "H3K36me3": _encode_mark("ENCFF121SMM", "ENCSR091QXP", 1100),
-    "H3K4me1":  _encode_mark("ENCFF205ZML", "ENCSR161MXP", 1150),
-    "H3K4me2":  _encode_mark("ENCFF736AWH", "ENCSR794ULT", 1000),
-    "H3K4me3":  _encode_mark("ENCFF176NSX", "ENCSR333OPW", 1034),
+    "H3K4me1": _encode_mark("ENCFF205ZML", "ENCSR161MXP", 1150),
+    "H3K4me2": _encode_mark("ENCFF736AWH", "ENCSR794ULT", 1000),
+    "H3K4me3": _encode_mark("ENCFF176NSX", "ENCSR333OPW", 1034),
     "H3K79me2": _encode_mark("ENCFF954SUA", "ENCSR494CCN", 1000),
-    "H3K9ac":   _encode_mark("ENCFF960LSV", "ENCSR093SHE", 1000),
-    "H3K9me2":  _encode_mark("ENCFF679MXB", "ENCSR555LYM", 1000),
-    "H3K9me3":  _encode_mark("ENCFF014WPW", "ENCSR179BUC", 1360),
+    "H3K9ac": _encode_mark("ENCFF960LSV", "ENCSR093SHE", 1000),
+    "H3K9me2": _encode_mark("ENCFF679MXB", "ENCSR555LYM", 1000),
+    "H3K9me3": _encode_mark("ENCFF014WPW", "ENCSR179BUC", 1360),
     "H4K20me1": _encode_mark("ENCFF757LRS", "ENCSR474DOV", 1000),
-    "H2AFZ":    _encode_mark("ENCFF570WCD", "ENCSR227XNT", 1000),
+    "H2AFZ": _encode_mark("ENCFF570WCD", "ENCSR227XNT", 1000),
 }
 
 # Which marks belong to which set
@@ -458,12 +460,14 @@ def main():
     )
     parser.add_argument("--hic", action="store_true", help="Download Hi-C data only")
     parser.add_argument(
-        "--chipseq-encode", action="store_true",
-        help="Download ENCODE histone ChIP-seq marks (6 marks: HCT116_hg19)"
+        "--chipseq-encode",
+        action="store_true",
+        help="Download ENCODE histone ChIP-seq marks (6 marks: HCT116_hg19)",
     )
     parser.add_argument(
-        "--chipseq-histone", action="store_true",
-        help="Download all histone ChIP-seq marks (12 marks: HCT116_hg19_all)"
+        "--chipseq-histone",
+        action="store_true",
+        help="Download all histone ChIP-seq marks (12 marks: HCT116_hg19_all)",
     )
     parser.add_argument(
         "--status", action="store_true", help="Check which data files are available"
@@ -480,13 +484,18 @@ def main():
         check_data_status()
     elif args.setup:
         setup_directory_structure()
-    elif args.all or args.hic or getattr(args, 'chipseq_encode', False) or getattr(args, 'chipseq_histone', False):
+    elif (
+        args.all
+        or args.hic
+        or getattr(args, "chipseq_encode", False)
+        or getattr(args, "chipseq_histone", False)
+    ):
         # Download requested data
         if args.all or args.hic:
             download_hic_data(force=args.force)
-        if args.all or getattr(args, 'chipseq_encode', False):
+        if args.all or getattr(args, "chipseq_encode", False):
             download_chipseq_data(cell_types=["HCT116_hg19"], force=args.force)
-        if getattr(args, 'chipseq_histone', False):
+        if getattr(args, "chipseq_histone", False):
             download_chipseq_data(cell_types=["HCT116_hg19_all"], force=args.force)
     elif len(sys.argv) == 1:
         # No args - show status and help
