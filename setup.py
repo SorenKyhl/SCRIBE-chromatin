@@ -4,7 +4,7 @@ import platform
 from pybind11.setup_helpers import Pybind11Extension
 
 # Extra compile args for C++17
-extra_compile_args = ['-std=c++17']
+extra_compile_args = ['-std=c++17', '-Wno-deprecated-declarations']
 extra_link_args = []
 
 # macOS-specific linker flags

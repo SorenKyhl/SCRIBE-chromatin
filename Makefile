@@ -28,9 +28,8 @@ all: build install
 build: 
 	(cd src && make pybind && mv scribe_engine* ../scribe)
 
-install: 
-	python setup.py bdist_wheel
-	python -m pip install dist/* --force-reinstall
+install:
+	python -m pip install . --force-reinstall --no-build-isolation
 
 clean:
 	rm -rf build dist *.egg-info scribe/*.so scribe/scribe_engine*

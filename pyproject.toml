@@ -3,8 +3,9 @@ name = "scribe"
 version = "0.1.0"
 description = "Sequence-to-Chromatin structure via epigenetic Representation, Investigation, Benchmarking, and Editing"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.8"
+dynamic = ["dependencies"]
 authors = [
     {name = "Soren Kyhl", email = "soren@kyhl.com"}
 ]
