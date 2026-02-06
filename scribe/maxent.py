@@ -235,7 +235,10 @@ class Maxent:
             elapsed = time.time() - t0
             logger.info(
                 "Iteration %d/%d complete: loss=%.6f (%.1fs)",
-                it + 1, n_iter, newloss, elapsed,
+                it + 1,
+                n_iter,
+                newloss,
+                elapsed,
             )
 
         logger.info("Optimization complete. Final loss=%.6f", self.loss[-1])

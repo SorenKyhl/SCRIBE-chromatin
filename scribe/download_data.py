@@ -18,8 +18,11 @@ Examples:
     # Download Hi-C data only (~29 GB)
     python -m scribe.download_data --hic
 
-    # Download ChIP-seq data only (~6.8 GB)
-    python -m scribe.download_data --chipseq
+    # Download ENCODE ChIP-seq data only (6 marks, ~6.8 GB)
+    python -m scribe.download_data --chipseq-encode
+
+    # Download all histone ChIP-seq marks (12 marks, ~12.9 GB)
+    python -m scribe.download_data --chipseq-histone
 
 Note:
     Data files are large (several GB). Ensure you have sufficient disk space.
@@ -58,42 +61,45 @@ HIC_FILES = {
 # ChIP-seq files from ENCODE
 # HCT116 histone modifications aligned to hg19
 # URLs from ENCODE portal: https://www.encodeproject.org/
-# All files are fold-change-over-control bigWig from pooled replicates
+# All files are signal p-value bigWig from pooled replicates
+
+def _encode_mark(accession: str, experiment: str, size_mb: int) -> dict:
+    """Build a mark entry from its ENCODE accession."""
+    return {
+        "accession": accession,
+        "experiment": experiment,
+        "url": f"https://www.encodeproject.org/files/{accession}/@@download/{accession}.bigWig",
+        "size_mb": size_mb,
+    }
+
+# Single registry of all HCT116 histone ChIP-seq marks (hg19, signal p-value)
+_HCT116_MARKS = {
+    "H3K27ac":  _encode_mark("ENCFF445BLD", "ENCSR661KMA", 1020),
+    "H3K27me3": _encode_mark("ENCFF977LFP", "ENCSR810BDB", 1200),
+    "H3K36me3": _encode_mark("ENCFF121SMM", "ENCSR091QXP", 1100),
+    "H3K4me1":  _encode_mark("ENCFF205ZML", "ENCSR161MXP", 1150),
+    "H3K4me2":  _encode_mark("ENCFF736AWH", "ENCSR794ULT", 1000),
+    "H3K4me3":  _encode_mark("ENCFF176NSX", "ENCSR333OPW", 1034),
+    "H3K79me2": _encode_mark("ENCFF954SUA", "ENCSR494CCN", 1000),
+    "H3K9ac":   _encode_mark("ENCFF960LSV", "ENCSR093SHE", 1000),
+    "H3K9me2":  _encode_mark("ENCFF679MXB", "ENCSR555LYM", 1000),
+    "H3K9me3":  _encode_mark("ENCFF014WPW", "ENCSR179BUC", 1360),
+    "H4K20me1": _encode_mark("ENCFF757LRS", "ENCSR474DOV", 1000),
+    "H2AFZ":    _encode_mark("ENCFF570WCD", "ENCSR227XNT", 1000),
+}
+
+# Which marks belong to which set
+_ENCODE_MARK_NAMES = ["H3K27ac", "H3K27me3", "H3K36me3", "H3K4me1", "H3K4me3", "H3K9me3"]
+_ALL_MARK_NAMES = list(_HCT116_MARKS.keys())
+
 CHIPSEQ_FILES = {
     "HCT116_hg19": {
-        "description": "HCT116 histone modifications (ENCODE)",
-        "files": {
-            "H3K27ac": {
-                "accession": "ENCFF445BLD",
-                "url": "https://www.encodeproject.org/files/ENCFF445BLD/@@download/ENCFF445BLD.bigWig",
-                "size_mb": 1020,
-            },
-            "H3K4me3": {
-                "accession": "ENCFF176NSX",
-                "url": "https://www.encodeproject.org/files/ENCFF176NSX/@@download/ENCFF176NSX.bigWig",
-                "size_mb": 1034,
-            },
-            "H3K27me3": {
-                "accession": "ENCFF030SYQ",
-                "url": "https://www.encodeproject.org/files/ENCFF030SYQ/@@download/ENCFF030SYQ.bigWig",
-                "size_mb": 1200,
-            },
-            "H3K9me3": {
-                "accession": "ENCFF014WPW",
-                "url": "https://www.encodeproject.org/files/ENCFF014WPW/@@download/ENCFF014WPW.bigWig",
-                "size_mb": 1360,
-            },
-            "H3K36me3": {
-                "accession": "ENCFF062CBC",
-                "url": "https://www.encodeproject.org/files/ENCFF062CBC/@@download/ENCFF062CBC.bigWig",
-                "size_mb": 1100,
-            },
-            "H3K4me1": {
-                "accession": "ENCFF285DIL",
-                "url": "https://www.encodeproject.org/files/ENCFF285DIL/@@download/ENCFF285DIL.bigWig",
-                "size_mb": 1150,
-            },
-        },
+        "description": f"HCT116 ENCODE histone modifications ({len(_ENCODE_MARK_NAMES)} marks)",
+        "files": {m: _HCT116_MARKS[m] for m in _ENCODE_MARK_NAMES},
+    },
+    "HCT116_hg19_all": {
+        "description": f"HCT116 all histone modifications — ENCODE ({len(_ALL_MARK_NAMES)} marks)",
+        "files": {m: _HCT116_MARKS[m] for m in _ALL_MARK_NAMES},
     },
 }
 
@@ -387,6 +393,7 @@ def setup_directory_structure():
     dirs = [
         data_dir / "hic" / "HCT116_auxin",
         data_dir / "chipseq" / "HCT116_hg19",
+        data_dir / "chipseq" / "HCT116_hg19_all",
         data_dir / "cache",
     ]
 
@@ -450,7 +457,14 @@ def main():
         "--all", action="store_true", help="Download all available data (Hi-C + ChIP-seq)"
     )
     parser.add_argument("--hic", action="store_true", help="Download Hi-C data only")
-    parser.add_argument("--chipseq", action="store_true", help="Download ChIP-seq data only")
+    parser.add_argument(
+        "--chipseq-encode", action="store_true",
+        help="Download ENCODE histone ChIP-seq marks (6 marks: HCT116_hg19)"
+    )
+    parser.add_argument(
+        "--chipseq-histone", action="store_true",
+        help="Download all histone ChIP-seq marks (12 marks: HCT116_hg19_all)"
+    )
     parser.add_argument(
         "--status", action="store_true", help="Check which data files are available"
     )
@@ -466,12 +480,14 @@ def main():
         check_data_status()
     elif args.setup:
         setup_directory_structure()
-    elif args.all or args.hic or args.chipseq:
+    elif args.all or args.hic or getattr(args, 'chipseq_encode', False) or getattr(args, 'chipseq_histone', False):
         # Download requested data
         if args.all or args.hic:
             download_hic_data(force=args.force)
-        if args.all or args.chipseq:
-            download_chipseq_data(force=args.force)
+        if args.all or getattr(args, 'chipseq_encode', False):
+            download_chipseq_data(cell_types=["HCT116_hg19"], force=args.force)
+        if getattr(args, 'chipseq_histone', False):
+            download_chipseq_data(cell_types=["HCT116_hg19_all"], force=args.force)
     elif len(sys.argv) == 1:
         # No args - show status and help
         check_data_status()

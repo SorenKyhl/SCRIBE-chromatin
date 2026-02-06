@@ -17,8 +17,9 @@ SCRIBE uses experimental Hi-C and ChIP-seq data for training and validation. The
    python -m scribe.download_data --all
 
    # Or download separately:
-   python -m scribe.download_data --hic        # Hi-C only (~29 GB)
-   python -m scribe.download_data --chipseq    # ChIP-seq only (~6.8 GB)
+   python -m scribe.download_data --hic              # Hi-C only (~29 GB)
+   python -m scribe.download_data --chipseq-encode    # ENCODE ChIP-seq (6 marks, ~6.8 GB)
+   python -m scribe.download_data --chipseq-histone   # All histone ChIP-seq (12 marks, ~12.9 GB)
 
 Data is stored in ``~/.scribe/data/`` by default. Set ``SCRIBE_DATA_DIR`` to use a custom location.
 
