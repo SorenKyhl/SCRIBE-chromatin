@@ -64,8 +64,8 @@
   "nbeads": 1024,
   "nspecies": 2,
   "load_configuration_filename": "equilibrated.xyz",
-  "bead_type_files": ["pcf1.txt", "pcf2.txt"],
-  "chipseq_files": ["pcf1.txt", "pcf2.txt"],
+  "bead_type_files": ["seq1.txt", "seq2.txt"],
+  "chipseq_files": ["seq1.txt", "seq2.txt"],
   "chis": [
     [0.0, 0.0],
     [0.0, 0.0]

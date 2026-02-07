@@ -284,6 +284,9 @@ class DataPipeline:
         if marks is not None:
             seqs_raw = {k: v for k, v in seqs_raw.items() if k in marks}
 
+        # Sort by mark name for deterministic ordering (glob order is filesystem-dependent)
+        seqs_raw = dict(sorted(seqs_raw.items()))
+
         # Pool sequences to target nbeads (same factor as Hi-C)
         factor = self._cleaned_size // self.nbeads if self._cleaned_size > self.nbeads else 1
         usable_size = factor * self.nbeads

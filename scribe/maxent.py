@@ -43,6 +43,7 @@ class Maxent:
         dampen_first_step: bool = True,
         diag_only: bool = False,
         optimize_indices: bool | None = None,
+        mark_names: list[str] | None = None,
     ):
         """
         root: root of maxent filesystem
@@ -61,6 +62,7 @@ class Maxent:
         self.gthic = gthic
         self.overwrite = overwrite
         self.optimize_indices = optimize_indices
+        self.mark_names = mark_names
 
         if "goals" not in self.params:
             raise ValueError("goals are not specified in parameters")
@@ -69,7 +71,9 @@ class Maxent:
             # this only pertains to plaid settings in the default config
             self.update_default_config()
 
-        self.defaultsim = ScribeSim(self.resources, self.config, self.seqs, mkdir=False)
+        self.defaultsim = ScribeSim(
+            self.resources, self.config, self.seqs, mkdir=False, mark_names=self.mark_names
+        )
         if initial_chis is None:
             self.initial_chis = self.defaultsim.flatten_chis()
         else:
@@ -113,8 +117,11 @@ class Maxent:
 
         bead_type_files = []
         for i in range(self.k):
-            bead_type_files.append(f"pcf{i+1}.txt")
+            bead_type_files.append(f"seq{i+1}.txt")
         self.config["bead_type_files"] = bead_type_files
+
+        if self.mark_names is not None:
+            self.config["mark_names"] = self.mark_names
 
     def make_directory(self):
         """create maxent directory and populate resources"""

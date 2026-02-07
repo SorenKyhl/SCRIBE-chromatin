@@ -27,10 +27,12 @@ class ScribeSim:
         randomize_seed: bool = True,
         mkdir: bool = True,
         setup_needed: bool = True,
+        mark_names: list[str] | None = None,
     ):
         self.set_root(root, mkdir)
         self.set_config(config)
         self.seqs = seqs
+        self.mark_names = mark_names
         self.setup_needed = setup_needed  # should be true unless instantiated using from_directory
 
         if gthic is not None:
@@ -85,6 +87,13 @@ class ScribeSim:
 
     def setup(self):
         """write simulation inputs in simulation root directory, if setup_needed"""
+        # Write mark_names to config if provided
+        if self.mark_names is not None:
+            assert len(self.mark_names) == len(self.seqs), (
+                f"mark_names length ({len(self.mark_names)}) != seqs length ({len(self.seqs)})"
+            )
+            self.config["mark_names"] = self.mark_names
+
         # needs to happen regardless of setup_needed setting, because seed is randomized
         utils.write_json(self.config, Path(self.root, "config.json"))
 
@@ -96,9 +105,9 @@ class ScribeSim:
             self.seqs = np.array(self.seqs)
             if self.seqs.ndim > 1:
                 for i, seq in enumerate(self.seqs):
-                    self.write_sequence(seq, Path(self.root, f"pcf{i+1}.txt"))
+                    self.write_sequence(seq, Path(self.root, f"seq{i+1}.txt"))
             else:
-                self.write_sequence(self.seqs, Path(self.root, "pcf1.txt"))
+                self.write_sequence(self.seqs, Path(self.root, "seq1.txt"))
 
     def flatten_chis(self):
         """restructure chi parameters into a 1-dimensional list

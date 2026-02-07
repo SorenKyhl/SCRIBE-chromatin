@@ -301,7 +301,7 @@ class DataLoader:
         """
         seqs = {}
         directory = Path(directory)
-        filenames = list(directory.glob("*.bigWig"))
+        filenames = sorted(directory.glob("*.bigWig"))
         lookup_table = get_experiment_marks(directory)
 
         for file in filenames:
