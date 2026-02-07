@@ -23,6 +23,9 @@ from scribe.analysis import SimulationResult
 # High-level data loading
 from scribe.data_pipeline import DataPipeline, SyntheticDataPipeline
 
+# Knockout experiments
+from scribe.knockout import KnockoutExperiment
+
 # Optimization
 from scribe.maxent import Maxent
 from scribe.scribe_sim import ScribeSim
@@ -37,6 +40,7 @@ __all__ = [
     "SimulationResult",
     "DataPipeline",
     "SyntheticDataPipeline",
+    "KnockoutExperiment",
     "Maxent",
     "__git_commit__",
 ]
