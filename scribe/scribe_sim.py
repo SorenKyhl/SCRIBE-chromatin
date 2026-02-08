@@ -259,9 +259,8 @@ class ScribeSim:
         for p in processes:
             p.join()
 
-        # getting segfaults, possibly due to all processes retaining their memory. does this fix it?
         for p in processes:
-            p.terminate()
+            p.close()
 
         self.aggregate_production_files()
 
