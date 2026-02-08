@@ -9,7 +9,7 @@ the results with publication-quality plots.
 import copy
 import csv
 import logging
-from multiprocessing import Process
+import shutil
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -99,9 +99,19 @@ class KnockoutExperiment:
                 logger.info(f"Skipping {mark} — already completed ({contacts_file})")
                 continue
 
+            # Clean up partial runs so ScribeSim can create the directory fresh
+            if ko_dir.exists():
+                logger.info(f"Removing incomplete directory: {ko_dir}")
+                shutil.rmtree(ko_dir)
+
             logger.info(f"Running knockout: {mark} (index {idx})")
 
             ko_config = self._zero_out_mark(self.config, idx)
+
+            # Normalize bead_type_files to match what ScribeSim.setup() writes
+            ko_config["bead_type_files"] = [
+                f"seq{i+1}.txt" for i in range(len(self.seqs))
+            ]
 
             sim = ScribeSim(
                 root=ko_dir,

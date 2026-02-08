@@ -25,6 +25,7 @@ from scribe.data_pipeline import DataPipeline, SyntheticDataPipeline
 
 # Knockout experiments
 from scribe.knockout import KnockoutExperiment
+from scribe.knockouts import CrossTermKnockout
 
 # Optimization
 from scribe.maxent import Maxent
@@ -41,6 +42,7 @@ __all__ = [
     "DataPipeline",
     "SyntheticDataPipeline",
     "KnockoutExperiment",
+    "CrossTermKnockout",
     "Maxent",
     "__git_commit__",
 ]
