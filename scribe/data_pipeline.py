@@ -73,12 +73,14 @@ class DataPipeline:
         assembly: str = "hg19",
         highres_resolution: int = None,
         cache: bool = True,
+        unmappable_method: str = "drop",
     ):
         self.cell = cell
         self.chrom = chrom
         self.nbeads = nbeads
         self.assembly = assembly
         self.cache = cache
+        self.unmappable_method = unmappable_method
 
         # High-resolution loading - use a fixed resolution that's available in .hic files
         self.highres_resolution = (
@@ -96,9 +98,13 @@ class DataPipeline:
         else:
             # Load extra region to account for cleaning losses
             # Target: nbeads at 100kb = nbeads * 100kb base pairs
-            # But we load (1 + buffer) * that to have enough after cleaning
+            # When imputing, no bins are removed so no buffer needed
+            if unmappable_method == "impute":
+                buffer = 0.0
+            else:
+                buffer = self.CLEANING_BUFFER
             target_bp = self.nbeads * self.DEFAULT_RESOLUTION
-            raw_end = self.start + int(np.ceil(target_bp * (1 + self.CLEANING_BUFFER)))
+            raw_end = self.start + int(np.ceil(target_bp * (1 + buffer)))
             # Align end to bufsize boundary (bufsize = 1000 * highres_resolution in epilib)
             bufsize = 1000 * self.highres_resolution
             self.end = ((raw_end // bufsize) + 1) * bufsize  # Round up to next buffer boundary
@@ -116,7 +122,7 @@ class DataPipeline:
         # Cached data
         self._hic = None
         self._chipseq = None
-        self._dropped_inds = []
+        self._unmappable_inds = []
         self._cleaned_size = self.highres_beads  # Size after cleaning
 
     @property
@@ -185,13 +191,14 @@ class DataPipeline:
             pool_fn = hiclib.pool
 
         # Check cache first
-        cache_path = self._get_cache_path("hic_highres")
-        dropped_inds_path = self._get_cache_path("dropped_inds")
+        cache_suffix = f"hic_highres_{self.unmappable_method}"
+        cache_path = self._get_cache_path(cache_suffix)
+        unmappable_inds_path = self._get_cache_path("unmappable_inds")
         if self.cache and cache_path.exists() and not force_reload:
             gthic = np.load(cache_path)
             self._cleaned_size = len(gthic)
-            if dropped_inds_path.exists():
-                self._dropped_inds = np.load(dropped_inds_path).tolist()
+            if unmappable_inds_path.exists():
+                self._unmappable_inds = np.load(unmappable_inds_path).tolist()
         else:
             # Find Hi-C file
             hic_path = self._get_hic_path()
@@ -201,16 +208,17 @@ class DataPipeline:
                     f"Expected location: {self.data_dir / 'hic' / self.cell}/"
                 )
 
-            # Load at high resolution (cleaning happens inside loader)
-            gthic = self.loader.load_hic(hic_path)
-            self._dropped_inds = self.loader.dropped_inds
+            # Load at high resolution (cleaning/imputation happens inside loader)
+            self.loader.unmappable_method = self.unmappable_method
+            gthic = self.loader.load_hic(hic_path, unmappable_method=self.unmappable_method)
+            self._unmappable_inds = self.loader.unmappable_inds
             self._cleaned_size = len(gthic)
 
-            # Cache the high-res cleaned data and dropped indices
+            # Cache the high-res data and unmappable indices
             if self.cache:
                 self.cache_dir.mkdir(parents=True, exist_ok=True)
                 np.save(cache_path, gthic)
-                np.save(dropped_inds_path, np.array(self._dropped_inds))
+                np.save(unmappable_inds_path, np.array(self._unmappable_inds))
 
         # Pool down to target nbeads
         # After cleaning, we need at least nbeads worth of high-res bins
@@ -264,17 +272,18 @@ class DataPipeline:
                 f"Expected location: {self.data_dir / 'chipseq' / f'{cell_base}_{self.assembly}'}/"
             )
 
-        # Need to load Hi-C first to get dropped indices
+        # Need to load Hi-C first to get unmappable indices
         if self._hic is None:
             try:
                 self.load_hic()
             except FileNotFoundError:
-                # If no Hi-C, load without dropped indices
-                self._dropped_inds = []
+                # If no Hi-C, load without unmappable indices
+                self._unmappable_inds = []
                 self._cleaned_size = self.highres_beads
 
-        # Update loader with dropped indices
-        self.loader.dropped_inds = self._dropped_inds
+        # Update loader with unmappable indices and method
+        self.loader.unmappable_inds = self._unmappable_inds
+        self.loader.unmappable_method = self.unmappable_method
         self.loader.bigsize = self.highres_beads
 
         # Load ChIP-seq
@@ -382,7 +391,7 @@ class DataPipeline:
         return (
             f"DataPipeline(cell='{self.cell}', chrom={self.chrom}, "
             f"nbeads={self.nbeads}, highres_beads={self.highres_beads}, "
-            f"region={self.start}-{self.end})"
+            f"region={self.start}-{self.end}, unmappable_method='{self.unmappable_method}')"
         )
 
 

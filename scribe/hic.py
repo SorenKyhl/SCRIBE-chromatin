@@ -167,6 +167,57 @@ def smooth_hic(x, smooth_size=10):
     return ndimage.gaussian_filter(x, (smooth_size, smooth_size))
 
 
+def compute_ps(hic, unmappable_mask):
+    """Compute average P(s) from mappable entries only.
+
+    For each genomic separation s, averages H_{ij} over all pairs
+    where neither i nor j is unmappable.
+
+    Args:
+        hic: Contact map array of shape (n, n)
+        unmappable_mask: Boolean array of shape (n,), True at unmappable positions
+
+    Returns:
+        Array of shape (n,) with average contact probability at each separation
+    """
+    n = len(hic)
+    ps = np.zeros(n)
+    for s in range(n):
+        diag = np.diagonal(hic, offset=s)
+        valid_i = ~unmappable_mask[: n - s]
+        valid_j = ~unmappable_mask[s:]
+        valid = valid_i & valid_j
+        if valid.sum() > 0:
+            ps[s] = diag[valid].mean()
+    return ps
+
+
+def impute_unmappable(hic, unmappable_mask, ps):
+    """Replace entries involving unmappable bins with P(s).
+
+    For every pair (i, j) where at least one of i or j is unmappable,
+    set H_{ij} = P(|i-j|). This is the maximum entropy (least-informative)
+    assumption for missing data.
+
+    Args:
+        hic: Contact map array of shape (n, n)
+        unmappable_mask: Boolean array of shape (n,), True at unmappable positions
+        ps: P(s) array from compute_ps()
+
+    Returns:
+        Imputed contact map (copy of input, not modified in-place)
+    """
+    hic = hic.copy()
+    n = len(hic)
+    unmappable_rows = np.where(unmappable_mask)[0]
+    for idx in unmappable_rows:
+        for j in range(n):
+            s = abs(idx - j)
+            hic[idx, j] = ps[s]
+            hic[j, idx] = ps[s]
+    return hic
+
+
 def load_hic(nbeads, pool_fn=pool, chrom=2, cell="HCT116_auxin", start=None, end=None, cache=True):
     """Load Hi-C by pooling from high resolution map.
 
