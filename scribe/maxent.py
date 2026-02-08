@@ -2,6 +2,7 @@ import copy
 import logging
 import os
 import pickle
+import shutil
 import time
 from pathlib import Path
 from typing import Union
@@ -168,7 +169,7 @@ class Maxent:
         if self.analysis_on:
             analysis_pipeline.main()
 
-    def fit(self):
+    def fit(self, start_iteration: int = 0):
         """execute maxent optimization"""
 
         from scribe import __git_commit__
@@ -184,11 +185,14 @@ class Maxent:
             self.params["parallel"],
         )
 
+        if start_iteration > 0:
+            self.overwrite = True
+
         self.make_directory()
         newchis = self.initial_chis
         utils.write_json(self.params, self.resources / "params.json")
 
-        for it in range(n_iter):
+        for it in range(start_iteration, n_iter):
             t0 = time.time()
             logger.info("--- Iteration %d/%d ---", it + 1, n_iter)
             self.save_state()
@@ -298,7 +302,25 @@ class Maxent:
             else:
                 loaded_maxent.gthic = np.load("experimental_hic.npy")
 
+            loaded_maxent.initial_chis = loaded_maxent.chis[-1]
+
             return loaded_maxent
+
+    @classmethod
+    def resume(cls, path: PathLike) -> "Maxent":
+        """Resume a partially completed maxent optimization from disk."""
+        me = cls.from_directory(path)
+        me.overwrite = True
+        start = len(me.loss)
+
+        # Clean up partial iteration directory (crash may have left it incomplete)
+        partial = me.root / f"iteration{start}"
+        if partial.exists():
+            shutil.rmtree(partial)
+
+        logger.info("Resuming from iteration %d/%d", start + 1, me.params["iterations"])
+        me.fit(start_iteration=start)
+        return me
 
     def set_config(self, path):
         """load config from path"""
