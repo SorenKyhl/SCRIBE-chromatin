@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from scribe import utils
-from scribe.analysis import SCC, get_SCC, get_contactmap, get_diagonal, plot_diff
+from scribe.analysis import get_contactmap, get_diagonal, get_SCC, plot_diff
 from scribe.scribe_sim import ScribeSim
 
 logger = logging.getLogger(__name__)
@@ -51,13 +51,11 @@ class KnockoutExperiment:
         elif "mark_names" in self.config:
             self.marks = list(self.config["mark_names"])
         else:
-            raise ValueError(
-                "mark_names must be provided or present in config['mark_names']"
-            )
+            raise ValueError("mark_names must be provided or present in config['mark_names']")
 
-        assert len(self.marks) == len(self.seqs), (
-            f"mark_names length ({len(self.marks)}) != sequences length ({len(self.seqs)})"
-        )
+        assert len(self.marks) == len(
+            self.seqs
+        ), f"mark_names length ({len(self.marks)}) != sequences length ({len(self.seqs)})"
 
         # Resolve experimental Hi-C
         if gthic is None:
@@ -109,9 +107,7 @@ class KnockoutExperiment:
             ko_config = self._zero_out_mark(self.config, idx)
 
             # Normalize bead_type_files to match what ScribeSim.setup() writes
-            ko_config["bead_type_files"] = [
-                f"seq{i+1}.txt" for i in range(len(self.seqs))
-            ]
+            ko_config["bead_type_files"] = [f"seq{i+1}.txt" for i in range(len(self.seqs))]
 
             sim = ScribeSim(
                 root=ko_dir,
@@ -182,7 +178,9 @@ class KnockoutExperiment:
         pct_values = [results[m]["pct_decrease"] for m in sorted_marks]
 
         fig, ax = plt.subplots(figsize=(8, 5))
-        bars = ax.bar(range(len(sorted_marks)), pct_values, color="#4878CF", edgecolor="black", linewidth=0.5)
+        ax.bar(
+            range(len(sorted_marks)), pct_values, color="#4878CF", edgecolor="black", linewidth=0.5
+        )
         ax.set_xticks(range(len(sorted_marks)))
         ax.set_xticklabels(sorted_marks, rotation=45, ha="right", fontsize=10)
         ax.set_ylabel("SCC % decrease from wildtype")
@@ -234,9 +232,7 @@ class KnockoutExperiment:
         """Plot annotated chi matrix heatmap."""
         chis = np.array(self.config["chis"])
         fig, ax = plt.subplots(figsize=(8, 7))
-        im = ax.imshow(chis, cmap="bwr",
-                        vmin=-np.max(np.abs(chis)),
-                        vmax=np.max(np.abs(chis)))
+        im = ax.imshow(chis, cmap="bwr", vmin=-np.max(np.abs(chis)), vmax=np.max(np.abs(chis)))
         ax.set_xticks(range(len(self.marks)))
         ax.set_xticklabels(self.marks, rotation=45, ha="right", fontsize=9)
         ax.set_yticks(range(len(self.marks)))
@@ -301,7 +297,7 @@ class KnockoutExperiment:
             verified.append(best_mark)
             logger.info(f"  seq{i+1} -> {best_mark} (r={best_corr:.4f})")
 
-        assert verified == self.marks, (
-            f"Mark order mismatch!\n  Expected: {self.marks}\n  Got:      {verified}"
-        )
+        assert (
+            verified == self.marks
+        ), f"Mark order mismatch!\n  Expected: {self.marks}\n  Got:      {verified}"
         logger.info("Mark order verified.")

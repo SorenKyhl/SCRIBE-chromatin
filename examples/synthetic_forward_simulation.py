@@ -4,8 +4,8 @@ No downloads required.
 """
 
 from scribe import default
-from scribe.scribe_sim import ScribeSim
 from scribe.data_pipeline import SyntheticDataPipeline
+from scribe.scribe_sim import ScribeSim
 
 # Use synthetic data pipeline (no downloads needed)
 pipeline = SyntheticDataPipeline(nbeads=1024)

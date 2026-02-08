@@ -17,12 +17,12 @@ import numpy as np
 
 from scribe import utils
 from scribe.analysis import (
-    get_RMSE,
-    get_SCC,
     get_contactmap,
     get_diagonal,
     get_oe,
     get_pearson,
+    get_RMSE,
+    get_SCC,
     plot_contactmap,
     plot_diff,
     plot_scatter,
@@ -72,9 +72,9 @@ class CrossTermKnockout:
         self.seqs = utils.load_sequences_from_dir(self.sim_dir)
         self.marks = list(mark_names)
 
-        assert len(self.marks) == len(self.seqs), (
-            f"mark_names length ({len(self.marks)}) != sequences length ({len(self.seqs)})"
-        )
+        assert len(self.marks) == len(
+            self.seqs
+        ), f"mark_names length ({len(self.marks)}) != sequences length ({len(self.seqs)})"
 
         self.gthic = _load_gthic(gthic)
 
@@ -114,9 +114,7 @@ class CrossTermKnockout:
         logger.info("Running cross-term knockout (diagonal-only chi)")
 
         ko_config = self._zero_cross_terms(self.config)
-        ko_config["bead_type_files"] = [
-            f"seq{i+1}.txt" for i in range(len(self.seqs))
-        ]
+        ko_config["bead_type_files"] = [f"seq{i+1}.txt" for i in range(len(self.seqs))]
 
         sim = ScribeSim(
             root=ko_dir,
@@ -194,7 +192,9 @@ class CrossTermKnockout:
         plot_tri(ko_contacts, wt_contacts, title="upper: knockout | lower: wildtype")
         _save_fig(self.output_dir / "tri_linear.png")
 
-        plot_tri(ko_contacts, wt_contacts, title="upper: knockout | lower: wildtype (log)", log=True)
+        plot_tri(
+            ko_contacts, wt_contacts, title="upper: knockout | lower: wildtype (log)", log=True
+        )
         _save_fig(self.output_dir / "tri_log.png")
 
         # 4. Contact maps: knockout (linear and log)
@@ -298,24 +298,34 @@ class CrossTermKnockout:
         outpath = self.output_dir / "knockout_results.csv"
         r = results["cross_terms"]
 
-        header = f"\n{'Condition':>14s}  {'SCC':>8s}  {'Pearson':>8s}  {'RMSE':>8s}  {'% SCC dec':>10s}"
+        header = (
+            f"\n{'Condition':>14s}  {'SCC':>8s}  {'Pearson':>8s}  {'RMSE':>8s}  {'% SCC dec':>10s}"
+        )
         sep = f"{'─' * 14}  {'─' * 8}  {'─' * 8}  {'─' * 8}  {'─' * 10}"
         print(header)
         print(sep)
         print(f"{'wildtype':>14s}  {wt_scc:8.4f}  {wt_pearson:8.4f}  {wt_rmse:8.4f}  {'—':>10s}")
-        print(f"{'cross_terms':>14s}  {r['scc_vs_exp']:8.4f}  {r['pearson_vs_exp']:8.4f}  {r['rmse_vs_exp']:8.4f}  {r['pct_decrease']:10.2f}%")
+        print(
+            f"{'cross_terms':>14s}  {r['scc_vs_exp']:8.4f}  {r['pearson_vs_exp']:8.4f}  {r['rmse_vs_exp']:8.4f}  {r['pct_decrease']:10.2f}%"
+        )
 
         with open(outpath, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["condition", "scc", "pearson", "rmse", "pct_scc_decrease", "scc_vs_wt"])
-            writer.writerow(["wildtype", f"{wt_scc:.4f}", f"{wt_pearson:.4f}", f"{wt_rmse:.4f}", "", ""])
-            writer.writerow([
-                "cross_terms",
-                f"{r['scc_vs_exp']:.4f}",
-                f"{r['pearson_vs_exp']:.4f}",
-                f"{r['rmse_vs_exp']:.4f}",
-                f"{r['pct_decrease']:.2f}",
-                f"{r['scc_vs_wt']:.4f}",
-            ])
+            writer.writerow(
+                ["condition", "scc", "pearson", "rmse", "pct_scc_decrease", "scc_vs_wt"]
+            )
+            writer.writerow(
+                ["wildtype", f"{wt_scc:.4f}", f"{wt_pearson:.4f}", f"{wt_rmse:.4f}", "", ""]
+            )
+            writer.writerow(
+                [
+                    "cross_terms",
+                    f"{r['scc_vs_exp']:.4f}",
+                    f"{r['pearson_vs_exp']:.4f}",
+                    f"{r['rmse_vs_exp']:.4f}",
+                    f"{r['pct_decrease']:.2f}",
+                    f"{r['scc_vs_wt']:.4f}",
+                ]
+            )
 
         logger.info(f"Saved {outpath}")

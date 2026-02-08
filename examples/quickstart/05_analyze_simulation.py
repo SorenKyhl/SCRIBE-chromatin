@@ -18,8 +18,8 @@ Output:
 import numpy as np
 from scipy.stats import pearsonr
 
-from scribe.analysis_pipeline import compare_analysis, sim_analysis
 from scribe.analysis import SCC
+from scribe.analysis_pipeline import compare_analysis, sim_analysis
 from scribe.scribe_sim import ScribeSim
 
 

@@ -104,7 +104,9 @@ def main():
         print("\nOr download separately:")
         print("  python -m scribe.download_data --hic              # Hi-C only")
         print("  python -m scribe.download_data --chipseq-encode    # ENCODE ChIP-seq (6 marks)")
-        print("  python -m scribe.download_data --chipseq-histone   # All histone ChIP-seq (12 marks)")
+        print(
+            "  python -m scribe.download_data --chipseq-histone   # All histone ChIP-seq (12 marks)"
+        )
 
 
 if __name__ == "__main__":

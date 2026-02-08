@@ -81,6 +81,7 @@ def process_data():
 def visualize_data(hic, seqs, marks):
     """Create visualization plots of the processed data."""
     import matplotlib.pyplot as plt
+
     from scribe import epilib
 
     print("\nGenerating plots...")
@@ -137,12 +138,12 @@ def visualize_data(hic, seqs, marks):
 
     # Print statistics
     print("\n--- Data Statistics ---")
-    print(f"Hi-C:")
+    print("Hi-C:")
     print(f"  Shape: {hic.shape}")
     print(f"  Min: {hic.min():.4f}, Max: {hic.max():.4f}, Mean: {hic.mean():.4f}")
     print(f"  Non-zero fraction: {(hic > 0).sum() / hic.size:.2%}")
 
-    print(f"\nChIP-seq:")
+    print("\nChIP-seq:")
     print(f"  Shape: {seqs.shape}")
     for i, mark in enumerate(marks):
         print(

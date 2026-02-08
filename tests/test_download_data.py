@@ -138,11 +138,11 @@ class TestFileRegistries:
                 assert url.endswith(".bigWig"), f"URL doesn't end with .bigWig for {mark}"
 
     def test_hct116_has_expected_marks(self):
-        """Test that HCT116 has the expected histone marks."""
+        """Test that HCT116 ENCODE dataset has the expected 6 histone marks."""
         expected_marks = {"H3K27ac", "H3K4me3", "H3K27me3", "H3K9me3", "H3K36me3", "H3K4me1"}
 
-        assert "HCT116_hg19" in CHIPSEQ_FILES
-        actual_marks = set(CHIPSEQ_FILES["HCT116_hg19"]["files"].keys())
+        assert "HCT116_hg19_encode" in CHIPSEQ_FILES
+        actual_marks = set(CHIPSEQ_FILES["HCT116_hg19_encode"]["files"].keys())
 
         assert expected_marks == actual_marks, f"Missing marks: {expected_marks - actual_marks}"
 

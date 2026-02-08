@@ -89,9 +89,9 @@ class ScribeSim:
         """write simulation inputs in simulation root directory, if setup_needed"""
         # Write mark_names to config if provided
         if self.mark_names is not None:
-            assert len(self.mark_names) == len(self.seqs), (
-                f"mark_names length ({len(self.mark_names)}) != seqs length ({len(self.seqs)})"
-            )
+            assert len(self.mark_names) == len(
+                self.seqs
+            ), f"mark_names length ({len(self.mark_names)}) != seqs length ({len(self.seqs)})"
             self.config["mark_names"] = self.mark_names
 
         # needs to happen regardless of setup_needed setting, because seed is randomized
