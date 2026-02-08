@@ -98,9 +98,9 @@ import subprocess
 
 def copy_last_snapshot(xyz_in, xyz_out, nbeads):
     """copies final snapshot from xyz_in to xyz_out"""
-    fout = open(xyz_out, "w")
     nlines = nbeads + 2
-    subprocess.run(["tail", f"-{nlines}", xyz_in], stdout=fout)
+    with open(xyz_out, "w") as fout:
+        subprocess.run(["tail", f"-{nlines}", xyz_in], stdout=fout)
 
 
 def process_parallel(tasks, args):

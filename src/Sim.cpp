@@ -535,13 +535,21 @@ void Sim::makeOutputFiles() {
     // fopen(char*, char*) function signature takes c strings...
     // std::string overloads + operator and resturns std::string, need to
     // convert back to c_str()
-    xyz_out = fopen(xyz_out_filename.c_str(), "w");
-    energy_out = fopen((energy_out_filename).c_str(), "w");
-    obs_out = fopen((obs_out_filename).c_str(), "w");
-    diag_obs_out = fopen((diag_obs_out_filename).c_str(), "w");
-    constant_obs_out = fopen((constant_obs_out_filename).c_str(), "w");
-    density_out = fopen((density_out_filename).c_str(), "w");
-    extra_out = fopen((extra_out_filename).c_str(), "w");
+    // Create empty output files (truncate if they exist).
+    // Close immediately — save functions re-open in append mode.
+    const char* filenames[] = {
+        xyz_out_filename.c_str(),
+        energy_out_filename.c_str(),
+        obs_out_filename.c_str(),
+        diag_obs_out_filename.c_str(),
+        constant_obs_out_filename.c_str(),
+        density_out_filename.c_str(),
+        extra_out_filename.c_str(),
+    };
+    for (const char* fn : filenames) {
+        FILE* f = fopen(fn, "w");
+        if (f) fclose(f);
+    }
 
     std::cout << "created successfully" << std::endl;
 
