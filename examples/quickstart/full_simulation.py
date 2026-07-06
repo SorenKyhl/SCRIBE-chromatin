@@ -100,7 +100,7 @@ def run_simulation(sequences):
     print("\nRunning simulation...")
     print("  - Equilibration: 10,000 sweeps")
     print("  - Production: 50,000 sweeps")
-    sim.run_eq(eq_sweeps=10000, prod_sweeps=50000)
+    sim.run_eq(equilibrium_sweeps=10000, production_sweeps=50000)
 
     return sim
 
@@ -111,17 +111,21 @@ def analyze_results(sim, experimental_hic):
     print("Step 3: Analysis")
     print("=" * 60)
 
+    production_dir = str(sim.root / "production_out")
+
     # Generate contact map visualization
     print("\nGenerating contact map...")
-    plot_contactmap("simulation_output")
+    plot_contactmap(production_dir)
 
     # Calculate metrics
     from scipy.stats import pearsonr
 
-    from scribe.epilib import SCC
+    from scribe.analysis import SimulationResult, get_SCC
 
-    scc = SCC(sim.hic, experimental_hic)
-    pearson_r, _ = pearsonr(sim.hic.flatten(), experimental_hic.flatten())
+    result = SimulationResult(production_dir, maxent_analysis=False)
+
+    scc = get_SCC(result.hic, experimental_hic)
+    pearson_r, _ = pearsonr(result.hic.flatten(), experimental_hic.flatten())
 
     print("\nComparison to experimental Hi-C:")
     print(f"  - SCC: {scc:.3f}")
@@ -152,7 +156,7 @@ def main():
     print("=" * 60)
     print("\nOutputs:")
     print("  - simulation_output/: Simulation results")
-    print("  - simulation_output/hic.png: Contact map")
+    print("  - contactmap.png: Contact map")
     print("  - chipseq_sequences.npy: Polymer sequences")
     print("  - experimental_hic.npy: Experimental Hi-C")
 
