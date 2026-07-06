@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -138,6 +139,33 @@ public:
 
 	unsigned long nbeads_moved = 0;
 
+	// Reusable buffers + generation stamp for flagging the cells touched by a
+	// single MC move. Replaces a per-move std::unordered_set<Cell*> /
+	// std::unordered_map, whose per-node heap allocations dominated the hot
+	// path. flagged_cells_buf holds the unique flagged cells (deduplicated via
+	// Cell::flag_stamp); bead_swaps_buf records beads that changed grid cell.
+	// Both are cleared (capacity retained) at the start of each move, so no
+	// allocation happens after warmup.
+	struct BeadSwap { int bead; Cell *old_cell; Cell *new_cell; };
+	std::vector<Cell *> flagged_cells_buf;
+	std::vector<BeadSwap> bead_swaps_buf;
+	uint64_t flag_generation = 0;
+
+	// Start a fresh flagging round for one MC move: bump the generation (so all
+	// prior stamps read as stale/unflagged) and clear the reused buffers.
+	void beginFlagging() {
+		++flag_generation;
+		flagged_cells_buf.clear();
+		bead_swaps_buf.clear();
+	}
+	// Record a cell as touched by the current move, deduplicating in O(1).
+	void flagCell(Cell *c) {
+		if (c->flag_stamp != flag_generation) {
+			c->flag_stamp = flag_generation;
+			flagged_cells_buf.push_back(c);
+		}
+	}
+
 	bool set_num_threads;
 	int num_threads;
 
@@ -191,11 +219,11 @@ public:
 	// energy calculation
 	double getAllBondedEnergy();
 	double getBondedEnergy(int first, int last);
-	double getNonBondedEnergy(const std::unordered_set<Cell*>& flagged_cells);
-	double getJustPlaidEnergy(const std::unordered_set<Cell*>& flagged_cells);
-	double getJustDiagEnergy(const std::unordered_set<Cell*>& flagged_cells);
-	double getJustBoundaryEnergy(const std::unordered_set<Cell*>& flagged_cells);
-	double getTotalEnergy(int first, int last, const std::unordered_set<Cell*>& flagged_cells);
+	double getNonBondedEnergy(const std::vector<Cell*>& flagged_cells);
+	double getJustPlaidEnergy(const std::vector<Cell*>& flagged_cells);
+	double getJustDiagEnergy(const std::vector<Cell*>& flagged_cells);
+	double getJustBoundaryEnergy(const std::vector<Cell*>& flagged_cells);
+	double getTotalEnergy(int first, int last, const std::vector<Cell*>& flagged_cells);
 
 	// Monte Carlo moves
 	void MC();

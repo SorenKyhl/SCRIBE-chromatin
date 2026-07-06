@@ -947,7 +947,7 @@ double Sim::getBondedEnergy(int first, int last) {
 }
 
 double
-Sim::getNonBondedEnergy(const std::unordered_set<Cell *> &flagged_cells) {
+Sim::getNonBondedEnergy(const std::vector<Cell *> &flagged_cells) {
     // gets all the nonbonded energy
     double U = grid.densityCapEnergy(flagged_cells);
     if (plaid_on) {
@@ -980,21 +980,21 @@ Sim::getNonBondedEnergy(const std::unordered_set<Cell *> &flagged_cells) {
 }
 
 double
-Sim::getJustPlaidEnergy(const std::unordered_set<Cell *> &flagged_cells) {
+Sim::getJustPlaidEnergy(const std::vector<Cell *> &flagged_cells) {
     // for when dumping energy;
     double U = grid.energy(flagged_cells, chis);
     return U;
 }
 
 double
-Sim::getJustBoundaryEnergy(const std::unordered_set<Cell *> &flagged_cells) {
+Sim::getJustBoundaryEnergy(const std::vector<Cell *> &flagged_cells) {
     // for when dumping energy;
     double U = grid.boundaryEnergy(flagged_cells, boundary_chi);
     return U;
 }
 
 double Sim::getTotalEnergy(int first, int last,
-                           const std::unordered_set<Cell *> &flagged_cells) {
+                           const std::vector<Cell *> &flagged_cells) {
     double U = 0;
     if (bonded_on)
         U += getBondedEnergy(first, last);
@@ -1027,40 +1027,43 @@ void Sim::MC() {
     checkConsistency();
 
     for (int sweep = 1; sweep < nSweeps + 1; sweep++) {
-        double nonbonded;
-
-        Timer t_pivot("pivoting", profiling_on);
-        for (int j = 0; j < n_pivot; j++) {
-            MCmove_pivot(sweep);
+        // Each move category is timed in its own block scope so the Timer
+        // destructor fires at the end of that category (not the end of the
+        // sweep), giving true per-category profiling when profiling_on is set.
+        {
+            Timer t_pivot("pivoting", profiling_on);
+            for (int j = 0; j < n_pivot; j++) {
+                MCmove_pivot(sweep);
+            }
         }
-        // t_pivot.~Timer();
-
-        Timer t_crankshaft("cranking", profiling_on);
-        for (int j = 0; j < n_crank; j++) {
-            MCmove_crankshaft();
+        {
+            Timer t_crankshaft("cranking", profiling_on);
+            for (int j = 0; j < n_crank; j++) {
+                MCmove_crankshaft();
+            }
         }
-        // t_crankshaft.~Timer();
-
-        Timer t_translation("translating", profiling_on);
-        for (int j = 0; j < n_trans; j++) {
-            MCmove_translate();
+        {
+            Timer t_translation("translating", profiling_on);
+            for (int j = 0; j < n_trans; j++) {
+                MCmove_translate();
+            }
         }
-        // t_translation.~Timer();
-
-        if (gridmove_on)
+        if (gridmove_on) {
+            Timer t_grid("gridmove", profiling_on);
             MCmove_grid();
-
-        Timer t_displace("displacing", profiling_on);
-        for (int j = 0; j < n_disp; j++) {
-            MCmove_displace();
         }
-        // t_displace.~Timer();
-
-        Timer t_rotation("Rotating", profiling_on);
-        for (int j = 0; j < n_rot; j++) {
-            MCmove_rotate();
+        {
+            Timer t_displace("displacing", profiling_on);
+            for (int j = 0; j < n_disp; j++) {
+                MCmove_displace();
+            }
         }
-        // t_rotation.~Timer();
+        {
+            Timer t_rotation("Rotating", profiling_on);
+            for (int j = 0; j < n_rot; j++) {
+                MCmove_rotate();
+            }
+        }
 
         if (sweep % dump_frequency == 0 || sweep == nSweeps) {
             analytics.log(sweep);
@@ -1128,11 +1131,11 @@ void Sim::MCmove_displace() {
     // update grid
     Cell *new_cell = grid.getCell(new_location);
 
-    std::unordered_set<Cell *> flagged_cells;
-    flagged_cells.insert(old_cell);
-    flagged_cells.insert(new_cell);
+    beginFlagging();
+    flagCell(old_cell);
+    flagCell(new_cell);
 
-    double Uold = getTotalEnergy(o, o, flagged_cells);
+    double Uold = getTotalEnergy(o, o, flagged_cells_buf);
 
     // move
     beads[o].r = new_location;
@@ -1143,7 +1146,7 @@ void Sim::MCmove_displace() {
         old_cell->moveOut(&beads[o]);
     }
 
-    double Unew = getTotalEnergy(o, o, flagged_cells);
+    double Unew = getTotalEnergy(o, o, flagged_cells_buf);
 
     if (rng->uniform() < exp(Uold - Unew)) {
         // move accepted
@@ -1177,13 +1180,8 @@ void Sim::MCmove_translate() {
     Eigen::RowVector3d displacement;
     displacement = step_trans * unit_vec(displacement);
 
-    // memory storage objects
-    std::unordered_set<Cell *> flagged_cells;
-    std::unordered_map<int, std::pair<Cell *, Cell *>>
-        bead_swaps; // index of beads that swapped cell locations
-
-    flagged_cells.reserve(last - first);
-    bead_swaps.reserve(last - first);
+    // reusable flagged-cell / bead-swap buffers (see beginFlagging/flagCell)
+    beginFlagging();
 
     Cell *old_cell_tmp;
     Cell *new_cell_tmp;
@@ -1205,17 +1203,15 @@ void Sim::MCmove_translate() {
         new_cell_tmp = grid.getCell(new_loc);
 
         if (new_cell_tmp != old_cell_tmp) {
-            bead_swaps[i] = std::make_pair(old_cell_tmp, new_cell_tmp);
-            flagged_cells.insert(new_cell_tmp);
-            flagged_cells.insert(old_cell_tmp);
+            bead_swaps_buf.push_back({i, old_cell_tmp, new_cell_tmp});
+            flagCell(new_cell_tmp);
+            flagCell(old_cell_tmp);
         }
     }
     // t_flag.~Timer();
 
     // Timer t_uold("Uold", print_trans);
-    // std::cout << "Beads: " << last-first << " Cells: " <<
-    // flagged_cells.size() << std::endl;
-    double Uold = getTotalEnergy(first, last, flagged_cells);
+    double Uold = getTotalEnergy(first, last, flagged_cells_buf);
     // t_uold.~Timer();
 
     // Timer t_disp("Displacement", print_trans);
@@ -1225,16 +1221,15 @@ void Sim::MCmove_translate() {
     // t_disp.~Timer();
 
     // Timer t_swap("Bead Swaps", print_trans);
-    //  update grid <bead index,   <old cell , new cell>>
-    // for(std::pair<int, std::pair<Cell*, Cell*>> &x : bead_swaps)
-    for (auto const &x : bead_swaps) {
-        x.second.first->moveOut(&beads[x.first]);
-        x.second.second->moveIn(&beads[x.first]);
+    //  update grid: move each swapped bead out of its old cell, into the new
+    for (auto const &x : bead_swaps_buf) {
+        x.old_cell->moveOut(&beads[x.bead]);
+        x.new_cell->moveIn(&beads[x.bead]);
     }
     // t_swap.~Timer();
 
     // Timer t_unew("Unew", print_trans);
-    double Unew = getTotalEnergy(first, last, flagged_cells);
+    double Unew = getTotalEnergy(first, last, flagged_cells_buf);
     // t_unew.~Timer();
 
     if (rng->uniform() < exp(Uold - Unew)) {
@@ -1248,11 +1243,11 @@ void Sim::MCmove_translate() {
             beads[i].r -= displacement; // restore particle positions
         }
 
-        if (bead_swaps.size() > 0) {
+        if (bead_swaps_buf.size() > 0) {
             // restore old grid populations
-            for (auto const &x : bead_swaps) {
-                x.second.first->moveIn(&beads[x.first]);
-                x.second.second->moveOut(&beads[x.first]);
+            for (auto const &x : bead_swaps_buf) {
+                x.old_cell->moveIn(&beads[x.bead]);
+                x.new_cell->moveOut(&beads[x.bead]);
             }
         }
     }
@@ -1295,11 +1290,8 @@ void Sim::MCmove_crankshaft() {
     static thread_local std::vector<Eigen::RowVector3d> old_orientations;
     old_positions.clear();
     old_orientations.clear();
-    std::unordered_set<Cell *> flagged_cells;
-    std::unordered_map<int, std::pair<Cell *, Cell *>> bead_swaps;
-
-    flagged_cells.reserve(last - first);
-    bead_swaps.reserve(last - first);
+    // reusable flagged-cell / bead-swap buffers (see beginFlagging/flagCell)
+    beginFlagging();
 
     Cell *old_cell_tmp;
     Cell *new_cell_tmp;
@@ -1338,24 +1330,23 @@ void Sim::MCmove_crankshaft() {
             old_cell_tmp = grid.getCell(old_positions[i - first]);
 
             if (new_cell_tmp != old_cell_tmp) {
-                bead_swaps[i] = std::make_pair(old_cell_tmp, new_cell_tmp);
-                flagged_cells.insert(new_cell_tmp);
-                flagged_cells.insert(old_cell_tmp);
+                bead_swaps_buf.push_back({i, old_cell_tmp, new_cell_tmp});
+                flagCell(new_cell_tmp);
+                flagCell(old_cell_tmp);
             }
         }
 
         // calculate old nonbonded energy based on flagged cells
         if (nonbonded_on)
-            Uold += getNonBondedEnergy(flagged_cells);
+            Uold += getNonBondedEnergy(flagged_cells_buf);
 
         // Update grid
-        // for(std::pair<int, std::pair<Cell*, Cell*>> &x : bead_swaps)
-        for (auto const &x : bead_swaps) {
-            x.second.first->moveOut(&beads[x.first]); // out of the old cell
-            x.second.second->moveIn(&beads[x.first]); // in to the new cell
+        for (auto const &x : bead_swaps_buf) {
+            x.old_cell->moveOut(&beads[x.bead]); // out of the old cell
+            x.new_cell->moveIn(&beads[x.bead]);  // in to the new cell
         }
 
-        double Unew = getTotalEnergy(first, last, flagged_cells);
+        double Unew = getTotalEnergy(first, last, flagged_cells_buf);
 
         if (rng->uniform() < exp(Uold - Unew)) {
             // std::cout << "Accepted"<< std::endl;
@@ -1376,12 +1367,10 @@ void Sim::MCmove_crankshaft() {
         }
 
         // restore grid allocations
-        if (bead_swaps.size() > 0) {
-            // for(std::pair<int, std::pair<Cell*, Cell*>> &x : bead_swaps)
-            for (auto const &x : bead_swaps) {
-                x.second.first->moveIn(&beads[x.first]); // back in to the old
-                x.second.second->moveOut(
-                    &beads[x.first]); // back out of the new
+        if (bead_swaps_buf.size() > 0) {
+            for (auto const &x : bead_swaps_buf) {
+                x.old_cell->moveIn(&beads[x.bead]);  // back in to the old
+                x.new_cell->moveOut(&beads[x.bead]); // back out of the new
             }
         }
     }
@@ -1461,8 +1450,8 @@ void Sim::MCmove_pivot(int sweep) {
     static thread_local std::vector<Eigen::RowVector3d> old_orientations;
     old_positions.clear();
     old_orientations.clear();
-    std::unordered_set<Cell *> flagged_cells;
-    std::unordered_map<int, std::pair<Cell *, Cell *>> bead_swaps;
+    // reusable flagged-cell / bead-swap buffers (see beginFlagging/flagCell)
+    beginFlagging();
 
     Cell *old_cell_tmp;
     Cell *new_cell_tmp;
@@ -1498,24 +1487,23 @@ void Sim::MCmove_pivot(int sweep) {
             old_cell_tmp = grid.getCell(old_positions[i - first]);
 
             if (new_cell_tmp != old_cell_tmp) {
-                bead_swaps[i] = std::make_pair(old_cell_tmp, new_cell_tmp);
-                flagged_cells.insert(old_cell_tmp);
-                flagged_cells.insert(new_cell_tmp);
+                bead_swaps_buf.push_back({i, old_cell_tmp, new_cell_tmp});
+                flagCell(old_cell_tmp);
+                flagCell(new_cell_tmp);
             }
         }
 
         // calculate old nonbonded energy based on flagged cells
         if (nonbonded_on)
-            Uold += getNonBondedEnergy(flagged_cells);
+            Uold += getNonBondedEnergy(flagged_cells_buf);
 
         // Update grid
-        // for(std::pair<int, std::pair<Cell*, Cell*>> &x : bead_swaps)
-        for (auto const &x : bead_swaps) {
-            x.second.first->moveOut(&beads[x.first]); // out of the old cell
-            x.second.second->moveIn(&beads[x.first]); // in to the new cell
+        for (auto const &x : bead_swaps_buf) {
+            x.old_cell->moveOut(&beads[x.bead]); // out of the old cell
+            x.new_cell->moveIn(&beads[x.bead]);  // in to the new cell
         }
 
-        double Unew = getTotalEnergy(pivot - 1, pivot, flagged_cells);
+        double Unew = getTotalEnergy(pivot - 1, pivot, flagged_cells_buf);
 
         if (rng->uniform() < exp(Uold - Unew)) {
             acc += 1;
@@ -1534,12 +1522,10 @@ void Sim::MCmove_pivot(int sweep) {
         }
 
         // restore bead allocations
-        if (bead_swaps.size() > 0) {
-            // for(std::pair<int, std::pair<Cell*, Cell*>> &x : bead_swaps)
-            for (auto const &x : bead_swaps) {
-                x.second.first->moveIn(&beads[x.first]); // back in to the old
-                x.second.second->moveOut(
-                    &beads[x.first]); // back out of the new
+        if (bead_swaps_buf.size() > 0) {
+            for (auto const &x : bead_swaps_buf) {
+                x.old_cell->moveIn(&beads[x.bead]);  // back in to the old
+                x.new_cell->moveOut(&beads[x.bead]); // back out of the new
             }
         }
     }
@@ -1568,7 +1554,7 @@ void Sim::MCmove_grid() {
         // remesh beads.
         grid.meshBeads(beads);
 
-        U = getNonBondedEnergy(grid.active_cells);
+        U = getNonBondedEnergy(grid.active_cells_vec);
 
         // don't accept if move violates density maximum
         if (U < 9999999999) {
@@ -1612,25 +1598,25 @@ void Sim::saveEnergy(int sweep) {
     double plaid = 0;
     if (plaid_on) {
         if (smatrix_on) {
-            plaid = grid.SmatrixEnergy(grid.active_cells, smatrix);
+            plaid = grid.SmatrixEnergy(grid.active_cells_vec, smatrix);
         } else if (ematrix_on) {
-            plaid = grid.EmatrixEnergy(grid.active_cells, ematrix);
+            plaid = grid.EmatrixEnergy(grid.active_cells_vec, ematrix);
         } else {
-            plaid = grid.energy(grid.active_cells, chis);
+            plaid = grid.energy(grid.active_cells_vec, chis);
         }
     }
     double diagonal = 0;
     if (diagonal_on) {
         if (dmatrix_on) {
-            diagonal = grid.DmatrixEnergy(grid.active_cells, dmatrix);
+            diagonal = grid.DmatrixEnergy(grid.active_cells_vec, dmatrix);
         } else {
-            diagonal = grid.diagEnergy(grid.active_cells, diag_chis);
+            diagonal = grid.diagEnergy(grid.active_cells_vec, diag_chis);
         }
     }
 
     double boundary = 0;
     boundary =
-        boundary_attract_on ? getJustBoundaryEnergy(grid.active_cells) : 0;
+        boundary_attract_on ? getJustBoundaryEnergy(grid.active_cells_vec) : 0;
     energy_out = fopen(energy_out_filename.c_str(), "a");
     fprintf(energy_out, "%d\t %lf\t %lf\t %lf\t %lf\t %lf\n", sweep, bonded,
             plaid, diagonal, boundary, bonded + plaid + diagonal + boundary);
@@ -1642,7 +1628,7 @@ void Sim::saveObservables(int sweep) {
     // leads to error if dumping observables after a rejected move;
     // beads are returned to their original state and typenums is updated
     // but cell.phis is not
-    double U = grid.energy(grid.active_cells, chis); // to update phis in cells
+    double U = grid.energy(grid.active_cells_vec, chis); // to update phis in cells
     if (plaid_on) {
         obs_out = fopen(obs_out_filename.c_str(), "a");
         fprintf(obs_out, "%d", sweep);
@@ -1674,7 +1660,7 @@ void Sim::saveObservables(int sweep) {
     // False for computational efficiency
     {
         double Udiag = grid.diagEnergy(
-            grid.active_cells, diag_chis); // to update phis_diag? jan 28-2022
+            grid.active_cells_vec, diag_chis); // to update phis_diag? jan 28-2022
         diag_obs_out = fopen(diag_obs_out_filename.c_str(), "a");
         fprintf(diag_obs_out, "%d", sweep);
 

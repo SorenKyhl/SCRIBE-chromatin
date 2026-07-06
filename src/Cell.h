@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <iostream>
 #include <vector>
 #include <unordered_set>
@@ -13,6 +14,11 @@ public:
 	std::unordered_set<Bead*> contains; // beads associated inside this gridpoint
 	double vol;		                // volume of cell
 	static double beadvol; // volume of a bead in the cell.
+
+	// Generation stamp used by Sim to deduplicate cells flagged during a single
+	// MC move without a hash set (see Sim::flagCell). Compared against Sim's
+	// monotonic flag_generation; a stale value reads as "not flagged".
+	uint64_t flag_stamp = 0;
 
 	static int ntypes;  // number of bead types
 	std::vector<double> typenums = std::vector<double>(ntypes); // always up-to-date

@@ -62,6 +62,8 @@ void Grid::setActiveCells() {
             }
         }
     }
+    // flat-vector view of the same cells, for allocation-free energy loops
+    active_cells_vec.assign(active_cells.begin(), active_cells.end());
     std::cout << "Active cells selected; number: " << active_cells.size()
               << std::endl;
 };
@@ -177,7 +179,7 @@ bool Grid::checkCellConsistency(int nbeads) {
     return (cellbeads == nbeads);
 };
 
-double Grid::densityCapEnergy(const std::unordered_set<Cell *> &flagged_cells) {
+double Grid::densityCapEnergy(const std::vector<Cell *> &flagged_cells) {
     // energy penalty due to density cap
     double U = 0;
     for (Cell *cell : flagged_cells) {
@@ -186,7 +188,7 @@ double Grid::densityCapEnergy(const std::unordered_set<Cell *> &flagged_cells) {
     return U;
 };
 
-double Grid::energy(const std::unordered_set<Cell *> &flagged_cells,
+double Grid::energy(const std::vector<Cell *> &flagged_cells,
                     const Eigen::MatrixXd &chis) {
     // nonbonded volume interactions
     double U = 0;
@@ -196,7 +198,7 @@ double Grid::energy(const std::unordered_set<Cell *> &flagged_cells,
     return U;
 };
 
-double Grid::constantEnergy(const std::unordered_set<Cell *> &flagged_cells,
+double Grid::constantEnergy(const std::vector<Cell *> &flagged_cells,
                             const double constant_chi) {
     // nonbonded volume interactions
     double U = 0;
@@ -206,7 +208,7 @@ double Grid::constantEnergy(const std::unordered_set<Cell *> &flagged_cells,
     return U;
 };
 
-double Grid::diagEnergy(const std::unordered_set<Cell *> &flagged_cells,
+double Grid::diagEnergy(const std::vector<Cell *> &flagged_cells,
                         const std::vector<double> &diag_chis) {
     // nonbonded volume interactions
     double U = 0;
@@ -226,7 +228,7 @@ double Grid::diagEnergy(const std::unordered_set<Cell *> &flagged_cells,
     return U;
 };
 
-double Grid::boundaryEnergy(const std::unordered_set<Cell *> &flagged_cells,
+double Grid::boundaryEnergy(const std::vector<Cell *> &flagged_cells,
                             const double boundary_chi) {
     // nonbonded volume interactions
     double U = 0;
@@ -236,7 +238,7 @@ double Grid::boundaryEnergy(const std::unordered_set<Cell *> &flagged_cells,
     return U;
 };
 
-double Grid::SmatrixEnergy(const std::unordered_set<Cell *> &flagged_cells,
+double Grid::SmatrixEnergy(const std::vector<Cell *> &flagged_cells,
                            const Eigen::MatrixXd &Smatrix) {
     // nonbonded volume interactions
     double U = 0;
@@ -247,7 +249,7 @@ double Grid::SmatrixEnergy(const std::unordered_set<Cell *> &flagged_cells,
     return U;
 };
 
-double Grid::EmatrixEnergy(const std::unordered_set<Cell *> &flagged_cells,
+double Grid::EmatrixEnergy(const std::vector<Cell *> &flagged_cells,
                            const Eigen::MatrixXd &Ematrix) {
     // nonbonded volume interactions
     double U = 0;
@@ -258,7 +260,7 @@ double Grid::EmatrixEnergy(const std::unordered_set<Cell *> &flagged_cells,
     return U;
 };
 
-double Grid::DmatrixEnergy(const std::unordered_set<Cell *> &flagged_cells,
+double Grid::DmatrixEnergy(const std::vector<Cell *> &flagged_cells,
                            const Eigen::MatrixXd &Dmatrix) {
     // nonbonded volume interactions
     double U = 0;
