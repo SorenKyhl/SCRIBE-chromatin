@@ -207,7 +207,7 @@ double Grid::constantEnergy(const std::unordered_set<Cell *> &flagged_cells,
 };
 
 double Grid::diagEnergy(const std::unordered_set<Cell *> &flagged_cells,
-                        const std::vector<double> diag_chis) {
+                        const std::vector<double> &diag_chis) {
     // nonbonded volume interactions
     double U = 0;
 

@@ -949,8 +949,6 @@ double Sim::getBondedEnergy(int first, int last) {
 double
 Sim::getNonBondedEnergy(const std::unordered_set<Cell *> &flagged_cells) {
     // gets all the nonbonded energy
-    auto start = std::chrono::high_resolution_clock::now();
-
     double U = grid.densityCapEnergy(flagged_cells);
     if (plaid_on) {
         if (smatrix_on) {
@@ -978,11 +976,6 @@ Sim::getNonBondedEnergy(const std::unordered_set<Cell *> &flagged_cells) {
         U += grid.boundaryEnergy(flagged_cells, boundary_chi);
     }
 
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration =
-        std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    // std::cout << "NonBonded took " << duration.count() << "microseseconds "<<
-    // std::endl;
     return U;
 }
 
@@ -1296,14 +1289,15 @@ void Sim::MCmove_crankshaft() {
     du = Eigen::AngleAxisd(
         angle, axis.normalized()); // object representing this rotation
 
-    // memory storage objects
-    std::vector<Eigen::RowVector3d> old_positions;
-    std::vector<Eigen::RowVector3d> old_orientations;
+    // memory storage objects. old_positions/old_orientations are reused scratch
+    // buffers (.clear() keeps capacity) to avoid a heap allocation per move.
+    static thread_local std::vector<Eigen::RowVector3d> old_positions;
+    static thread_local std::vector<Eigen::RowVector3d> old_orientations;
+    old_positions.clear();
+    old_orientations.clear();
     std::unordered_set<Cell *> flagged_cells;
     std::unordered_map<int, std::pair<Cell *, Cell *>> bead_swaps;
 
-    old_positions.reserve(last - first);
-    old_orientations.reserve(last - first);
     flagged_cells.reserve(last - first);
     bead_swaps.reserve(last - first);
 
@@ -1461,9 +1455,12 @@ void Sim::MCmove_pivot(int sweep) {
     Eigen::Quaterniond du{
         Eigen::AngleAxisd(angle, axis)}; // object representing this rotation
 
-    // memory storage objects
-    std::vector<Eigen::RowVector3d> old_positions;
-    std::vector<Eigen::RowVector3d> old_orientations;
+    // memory storage objects. old_positions/old_orientations are reused scratch
+    // buffers (.clear() keeps capacity) to avoid a heap allocation per move.
+    static thread_local std::vector<Eigen::RowVector3d> old_positions;
+    static thread_local std::vector<Eigen::RowVector3d> old_orientations;
+    old_positions.clear();
+    old_orientations.clear();
     std::unordered_set<Cell *> flagged_cells;
     std::unordered_map<int, std::pair<Cell *, Cell *>> bead_swaps;
 

@@ -47,7 +47,7 @@ public:
 	double getDensityCapEnergy();
 	double getEnergy(const Eigen::MatrixXd &chis);
 	double getConstantEnergy(const double constant_chi);
-	double getDiagEnergy(const std::vector<double> diag_chis);
+	double getDiagEnergy(const std::vector<double> &diag_chis);
 	double getBoundaryEnergy(const double boundary_chi, const double delta);
 	double getSmatrixEnergy(const Eigen::MatrixXd &Smatrix);
 	double getEmatrixEnergy(const Eigen::MatrixXd &Ematrix);

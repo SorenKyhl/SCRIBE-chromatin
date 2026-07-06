@@ -42,7 +42,7 @@ public:
 	double densityCapEnergy(const std::unordered_set<Cell*>& flagged_cells);
 	double energy(const std::unordered_set<Cell*>& flagged_cells, const Eigen::MatrixXd &chis);
 	double constantEnergy(const std::unordered_set<Cell*>& flagged_cells, const double constant_chi);
-	double diagEnergy(const std::unordered_set<Cell*>& flagged_cells, const std::vector<double> diag_chis);
+	double diagEnergy(const std::unordered_set<Cell*>& flagged_cells, const std::vector<double> &diag_chis);
 	double boundaryEnergy(const std::unordered_set<Cell*>& flagged_cells, const double boundary_chi);
 	// double boundaryEnergy(const std::unordered_set<Cell*>& flagged_cells, const std::vector<std::vector<double>> &Smatrix);
 	double SmatrixEnergy(const std::unordered_set<Cell*>& flagged_cells, const Eigen::MatrixXd &Smatrix);

@@ -191,14 +191,17 @@ int Cell::binDiagonal(int d) {
     return bin_index;
 }
 
-double Cell::getDiagEnergy(const std::vector<double> diag_chis) {
+double Cell::getDiagEnergy(const std::vector<double> &diag_chis) {
     for (int i = 0; i < diag_nbins; i++) {
         diag_phis[i] = 0;
     }
 
     int d_index; // genomic separation (index for diag_phis)
     int imax = (int)contains.size();
-    std::vector<int> indices;
+    // Reused scratch buffer: .clear() keeps capacity, so after warmup this
+    // avoids a heap allocation on every call (this is the hottest inner loop).
+    static thread_local std::vector<int> indices;
+    indices.clear();
     for (const auto &elem : contains) {
         indices.push_back(elem->id);
     }
