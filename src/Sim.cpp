@@ -735,6 +735,10 @@ void Sim::calculateParameters() {
             "bead type is gaussian, set rotate_on = false");
     }
 
+    // Bead orientation only enters the energy for DSS bonds. When it doesn't,
+    // the crankshaft/pivot moves skip saving and rotating orientations.
+    orientation_active = (bond_type == "DSS");
+
     // number of Monte-Carlo proposal steps for each type
     n_disp = displacement_on ? nbeads : 0;
     n_trans = translation_on ? decay_length : 0;
@@ -1297,33 +1301,35 @@ void Sim::MCmove_crankshaft() {
     Cell *new_cell_tmp;
 
     // execute move
-    try {
-        double Uold = 0;
-        if (bonded_on)
-            Uold += getBondedEnergy(first, last);
+    bool rejected = false;
 
-        for (int i = first; i <= last; i++) {
-            // save old configuration
-            // --------------------- can this be done more efficiently?
-            // ------------------------------------------
-            old_positions.push_back(beads[i].r);
+    double Uold = 0;
+    if (bonded_on)
+        Uold += getBondedEnergy(first, last);
+
+    for (int i = first; i <= last; i++) {
+        // save old configuration
+        old_positions.push_back(beads[i].r);
+        if (orientation_active)
             old_orientations.push_back(beads[i].u);
 
-            // step to new configuration, but don't update grid yet (going to
-            // check if in bounds first)
-            beads[i].r = du * (beads[i].r - beads[first - 1].r) +
-                         beads[first - 1].r.transpose();
+        // step to new configuration, but don't update grid yet (going to
+        // check if in bounds first)
+        beads[i].r = du * (beads[i].r - beads[first - 1].r) +
+                     beads[first - 1].r.transpose();
+        if (orientation_active)
             beads[i].u = du * beads[i].u;
-        }
+    }
 
-        // reject if moved out of simulation box, need to restore old bead
-        // positions
-        for (int i = first; i <= last; i++) {
-            if (outside_boundary(beads[i].r)) {
-                throw "exited simulation box";
-            }
+    // reject if moved out of simulation box, need to restore old bead positions
+    for (int i = first; i <= last; i++) {
+        if (outside_boundary(beads[i].r)) {
+            rejected = true;
+            break;
         }
+    }
 
+    if (!rejected) {
         // flag cells and bead swaps, but do not update the grid
         for (int i = first; i <= last; i++) {
             new_cell_tmp = grid.getCell(beads[i]);
@@ -1349,29 +1355,28 @@ void Sim::MCmove_crankshaft() {
         double Unew = getTotalEnergy(first, last, flagged_cells_buf);
 
         if (rng->uniform() < exp(Uold - Unew)) {
-            // std::cout << "Accepted"<< std::endl;
             acc += 1;
             acc_crank += 1;
             analytics.nbeads_moved += (last - first);
         } else {
-            // std::cout << "Rejected" << std::endl;
-            throw "rejected";
+            rejected = true;
         }
     }
-    // REJECTION CASES -- restore old conditions
-    catch (const char *msg) {
+
+    // REJECTION -- restore old conditions
+    if (rejected) {
         // restore particle positions
         for (std::size_t i = 0; i < old_positions.size(); i++) {
             beads[first + i].r = old_positions[i];
-            beads[first + i].u = old_orientations[i];
+            if (orientation_active)
+                beads[first + i].u = old_orientations[i];
         }
 
-        // restore grid allocations
-        if (bead_swaps_buf.size() > 0) {
-            for (auto const &x : bead_swaps_buf) {
-                x.old_cell->moveIn(&beads[x.bead]);  // back in to the old
-                x.new_cell->moveOut(&beads[x.bead]); // back out of the new
-            }
+        // restore grid allocations (bead_swaps_buf is empty if we rejected on
+        // the boundary check, before any grid update)
+        for (auto const &x : bead_swaps_buf) {
+            x.old_cell->moveIn(&beads[x.bead]);  // back in to the old
+            x.new_cell->moveOut(&beads[x.bead]); // back out of the new
         }
     }
 }
@@ -1457,30 +1462,35 @@ void Sim::MCmove_pivot(int sweep) {
     Cell *new_cell_tmp;
 
     // execute move
-    try {
-        double Uold = 0;
-        if (bonded_on)
-            Uold += getBondedEnergy(pivot - 1, pivot);
+    bool rejected = false;
 
-        for (int i = first; i <= last; i++) {
-            // save old positions
-            old_positions.push_back(beads[i].r);
+    double Uold = 0;
+    if (bonded_on)
+        Uold += getBondedEnergy(pivot - 1, pivot);
+
+    for (int i = first; i <= last; i++) {
+        // save old positions
+        old_positions.push_back(beads[i].r);
+        if (orientation_active)
             old_orientations.push_back(beads[i].u);
 
-            // step to new configuration, but don't update grid yet (going to
-            // check if in bounds first)
-            beads[i].r =
-                du * (beads[i].r - beads[pivot].r) + beads[pivot].r.transpose();
+        // step to new configuration, but don't update grid yet (going to
+        // check if in bounds first)
+        beads[i].r =
+            du * (beads[i].r - beads[pivot].r) + beads[pivot].r.transpose();
+        if (orientation_active)
             beads[i].u = du * beads[i].u;
-        }
+    }
 
-        // reject if moved out of simulation box
-        for (int i = first; i <= last; i++) {
-            if (outside_boundary(beads[i].r)) {
-                throw "exited simulation box";
-            }
+    // reject if moved out of simulation box
+    for (int i = first; i <= last; i++) {
+        if (outside_boundary(beads[i].r)) {
+            rejected = true;
+            break;
         }
+    }
 
+    if (!rejected) {
         // flag cells and bead swaps, but do not update the grid
         for (int i = first; i <= last; i++) {
             new_cell_tmp = grid.getCell(beads[i]);
@@ -1510,23 +1520,24 @@ void Sim::MCmove_pivot(int sweep) {
             acc_pivot += 1;
             analytics.nbeads_moved += (last - first);
         } else {
-            throw "rejected";
+            rejected = true;
         }
     }
-    // REJECTION CASES -- restore old conditions
-    catch (const char *msg) {
+
+    // REJECTION -- restore old conditions
+    if (rejected) {
         // restore particle positions
         for (std::size_t i = 0; i < old_positions.size(); i++) {
             beads[first + i].r = old_positions[i];
-            beads[first + i].u = old_orientations[i];
+            if (orientation_active)
+                beads[first + i].u = old_orientations[i];
         }
 
-        // restore bead allocations
-        if (bead_swaps_buf.size() > 0) {
-            for (auto const &x : bead_swaps_buf) {
-                x.old_cell->moveIn(&beads[x.bead]);  // back in to the old
-                x.new_cell->moveOut(&beads[x.bead]); // back out of the new
-            }
+        // restore bead allocations (bead_swaps_buf is empty if we rejected on
+        // the boundary check, before any grid update)
+        for (auto const &x : bead_swaps_buf) {
+            x.old_cell->moveIn(&beads[x.bead]);  // back in to the old
+            x.new_cell->moveOut(&beads[x.bead]); // back out of the new
         }
     }
 }

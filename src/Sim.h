@@ -46,6 +46,10 @@ public:
 	double bond_length; // nm
 	std::string bond_type;
 	double k_angle;
+	// True only when bead orientation (Bead::u) affects the energy, i.e. for
+	// DSS bonds. For gaussian/harmonic bonds the energy depends only on bead
+	// positions, so the rotational moves skip all orientation bookkeeping.
+	bool orientation_active;
 	float dense_diagonal_cutoff;
 	float dense_diagonal_loading;
 	std::string boundary_type;
