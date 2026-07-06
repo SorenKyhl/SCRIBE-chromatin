@@ -1554,7 +1554,12 @@ void Sim::MCmove_grid() {
         // remesh beads.
         grid.meshBeads(beads);
 
-        U = getNonBondedEnergy(grid.active_cells_vec);
+        // The grid move is accepted unless it violates the per-cell density cap
+        // (it is not a Metropolis move). Only the density-cap term can reach the
+        // rejection threshold below, so compute just that -- computing the full
+        // plaid + diagonal nonbonded energy over every active cell here (once
+        // per sweep) was pure waste.
+        U = grid.densityCapEnergy(grid.active_cells_vec);
 
         // don't accept if move violates density maximum
         if (U < 9999999999) {
