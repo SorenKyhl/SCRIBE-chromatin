@@ -198,6 +198,28 @@ Optimize the Flory-Huggins χ interaction parameters to match experimental Hi-C 
    # me = Maxent.resume("maxent_output")
 
 
+Running a Simulation from a Converged Result
+---------------------------------------------
+
+Running maximum entropy optimization just to get realistic chi parameters
+is expensive. The package ships a converged config + sequences from a
+completed ``full_maxent.py`` run, so you can spawn a forward simulation
+with maxent-optimized chis directly:
+
+.. code-block:: python
+
+   from scribe import default
+   from scribe.scribe_sim import ScribeSim
+
+   config, seqs = default.load_converged("hct116_auxin_maxent")
+   sim = ScribeSim(root="output", config=config, seqs=seqs)
+   sim.run_eq(equilibrium_sweeps=10000, production_sweeps=50000)
+
+See ``examples/quickstart/07_run_from_converged.py`` for the full script,
+and ``scribe/defaults/hct116_auxin_maxent/README.md`` for provenance of
+this particular result.
+
+
 High-Level MaxentPipeline
 -------------------------
 

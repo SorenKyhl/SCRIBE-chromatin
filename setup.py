@@ -56,7 +56,7 @@ setup(
     name="scribe",
     packages=find_packages(include=["scribe", "scribe.*"]),
     package_data={
-        "scribe": ["defaults/*.json"],
+        "scribe": ["defaults/*.json", "defaults/*/*.json", "defaults/*/*.npy"],
     },
     include_package_data=True,
     version="0.1.3",

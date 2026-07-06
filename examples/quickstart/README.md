@@ -23,6 +23,7 @@ Run these in order to understand each step:
 | `04_maxent_optimization.py` | Learn χ parameters via maximum entropy |
 | `05_analyze_simulation.py` | Analyze and compare simulation results |
 | `06_pipeline_sweep.py` | Sweep over different sequence representations |
+| `07_run_from_converged.py` | Run a simulation from a shipped, pre-converged maxent result (no optimization needed) |
 
 ## Full Workflows
 
@@ -43,6 +44,15 @@ python full_simulation.py
 
 # Or learn parameters with maximum entropy
 python full_maxent.py
+```
+
+Maximum entropy optimization is expensive to rerun just to get realistic chi
+parameters. If you just want a simulation with maxent-optimized chis without
+running the optimization yourself, use the pre-converged result shipped with
+the package:
+
+```bash
+python 07_run_from_converged.py
 ```
 
 ## Output Files

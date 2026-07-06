@@ -28,6 +28,8 @@ import json
 import logging
 from pathlib import Path
 
+import numpy as np
+
 from scribe.paths import get_data_dir, get_defaults_dir
 
 logger = logging.getLogger(__name__)
@@ -63,6 +65,45 @@ def load_default_config(name: str = "config") -> dict:
         return _load_json(config_path)
 
     raise FileNotFoundError(f"Config '{name}' not found in {get_defaults_dir()}")
+
+
+def load_converged(name: str = "hct116_auxin_maxent") -> tuple[dict, np.ndarray]:
+    """
+    Load a converged config + sequences from a completed maximum entropy
+    optimization, for spawning new forward simulations with maxent-optimized
+    chi parameters without re-running the optimization.
+
+    Args:
+        name: Subdirectory of scribe/defaults/ containing config.json and
+              seqs.npy for this converged result.
+              Default is "hct116_auxin_maxent" (HCT116 auxin, chr2, 1024
+              beads, 12 histone marks -- see the README.md next to it for
+              provenance).
+
+    Returns:
+        (config, seqs): config dict with the optimized "chis"/"diag_chis",
+        and the (n_marks, nbeads) sequence array the optimization targeted.
+
+    Raises:
+        FileNotFoundError: If the named converged result is not found.
+
+    Example:
+        >>> from scribe import default
+        >>> from scribe.scribe_sim import ScribeSim
+        >>> config, seqs = default.load_converged()
+        >>> sim = ScribeSim(root="output", config=config, seqs=seqs)
+        >>> sim.run_eq(equilibrium_sweeps=10000, production_sweeps=50000)
+    """
+    result_dir = get_defaults_dir() / name
+    config_path = result_dir / "config.json"
+    seqs_path = result_dir / "seqs.npy"
+
+    if not config_path.exists() or not seqs_path.exists():
+        raise FileNotFoundError(
+            f"Converged result '{name}' not found. Expected {config_path} and {seqs_path}."
+        )
+
+    return _load_json(config_path), np.load(seqs_path)
 
 
 def load_default_params() -> dict:
