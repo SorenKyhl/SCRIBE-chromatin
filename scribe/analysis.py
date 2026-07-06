@@ -297,7 +297,7 @@ class SimulationResult:
         try:
             diag = get_diagonal(self.gthic)
             plot_fn(np.linspace(1 / len(diag), 1, len(diag)), diag, "k", label="exp")
-        except FileNotFoundError:
+        except (FileNotFoundError, AttributeError):
             logging.error("no ground truth hi-c for plot_diagonal")
 
         plt.xlabel("genomic distance")

@@ -53,5 +53,5 @@ After running the examples:
 - `experimental_hic.npy` - Hi-C contact map
 - `output/` or `simulation_output/` - Simulation results
 - `maxent_output/` - Maximum entropy optimization results
-  - `chis.npy` - Learned interaction parameters
+  - `plaid_chis.npy`, `daig_chis.npy` - Learned interaction parameters (plaid and diagonal)
   - `SCC.txt` - Correlation trajectory

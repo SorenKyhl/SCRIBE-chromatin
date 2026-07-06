@@ -18,21 +18,21 @@ Output:
 import numpy as np
 from scipy.stats import pearsonr
 
-from scribe.analysis import SCC
+from scribe.analysis import SimulationResult, get_SCC
 from scribe.analysis_pipeline import compare_analysis, sim_analysis
-from scribe.scribe_sim import ScribeSim
 
 
 def main():
-    # Load a completed simulation
+    # Load a completed simulation's outputs (production_out holds the
+    # aggregated contacts.txt, energy.traj, etc. that SimulationResult reads)
     try:
-        sim = ScribeSim.from_directory("output")
+        sim = SimulationResult("output/production_out", maxent_analysis=False)
     except Exception as e:
-        print(f"Could not load simulation from 'output/': {e}")
+        print(f"Could not load simulation from 'output/production_out': {e}")
         print("Run 03_run_simulation.py first.")
         return
 
-    print("Loaded simulation from: output/")
+    print("Loaded simulation from: output/production_out")
     print(f"Contact map shape: {sim.hic.shape}")
 
     # Basic analysis: energy convergence, contact map visualization
@@ -48,7 +48,7 @@ def main():
         compare_analysis(sim)  # Generates comparison plots
 
         # Quantitative metrics
-        scc = SCC(sim.hic, experimental_hic)
+        scc = get_SCC(sim.hic, experimental_hic)
         pearson_r, _ = pearsonr(sim.hic.flatten(), experimental_hic.flatten())
 
         print("\nQuantitative comparison:")

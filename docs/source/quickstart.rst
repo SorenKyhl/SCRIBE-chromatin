@@ -1,7 +1,40 @@
 Quick Start
 ===========
 
-This guide walks you through the main workflows in SCRIBE.
+Run the Example Scripts
+------------------------
+
+The fastest way to get started is to run the self-contained scripts in
+``examples/quickstart/``. They download data (if needed), process it, and run
+a full simulation or maximum-entropy optimization end to end.
+
+.. code-block:: bash
+
+   cd examples/quickstart
+
+   # Data -> forward simulation -> contact map comparison
+   python full_simulation.py
+
+   # Data -> maximum entropy optimization of chi parameters
+   python full_maxent.py
+
+Both scripts are safe to run from any working directory (they write their
+outputs relative to the current directory), so you can copy them elsewhere,
+or run them against a separate results directory, e.g.:
+
+.. code-block:: bash
+
+   mkdir -p /path/to/results/run1 && cd /path/to/results/run1
+   python /path/to/SCRIBE-chromatin/examples/quickstart/full_simulation.py
+
+The same directory also has a numbered set of scripts (``01_download_data.py``
+through ``06_pipeline_sweep.py``) that break the workflow into individual
+steps -- useful if you want to inspect or modify one stage without rerunning
+everything. See ``examples/quickstart/README.md`` for the full list.
+
+The rest of this page walks through the same steps as library calls, for
+when you want to script something custom instead of running the example
+files directly.
 
 Downloading Data
 ----------------
@@ -92,8 +125,9 @@ Run a forward simulation using epigenetic sequences and interaction parameters (
 .. code-block:: python
 
    from scribe.scribe_sim import ScribeSim
-   from scribe import default
+   from scribe.analysis import SimulationResult, get_SCC
    from scribe.plot_contactmap import plot_contactmap
+   from scribe import default
    import numpy as np
 
    # Load default configuration (contains interaction parameters χ)
@@ -106,10 +140,20 @@ Run a forward simulation using epigenetic sequences and interaction parameters (
    sim = ScribeSim(root="output", config=config, seqs=sequences)
 
    # Run equilibration + production to generate ensemble of 3D structures
-   sim.run_eq(eq_sweeps=10000, prod_sweeps=50000)
+   sim.run_eq(equilibrium_sweeps=10000, production_sweeps=50000)
+
+   # ScribeSim is a dispatcher only -- it does not hold the resulting contact
+   # map. Load the finished run (in "output/production_out") as a
+   # SimulationResult to inspect and visualize it.
+   result = SimulationResult("output/production_out", maxent_analysis=False)
 
    # Visualize the resulting contact map (averaged over ensemble)
-   plot_contactmap("output")
+   plot_contactmap("output/production_out")
+
+   # Compare to experimental data
+   experimental_hic = np.load("experimental_hic.npy")
+   scc = get_SCC(result.hic, experimental_hic)
+   print(f"SCC: {scc:.3f}")
 
 
 Maximum Entropy Optimization
@@ -120,7 +164,9 @@ Optimize the Flory-Huggins χ interaction parameters to match experimental Hi-C 
 .. code-block:: python
 
    from scribe.maxent import Maxent
+   from scribe.analysis import get_goals
    from scribe import default
+   import numpy as np
 
    # Load experimental Hi-C contact map (training target)
    hic_experimental = np.load("experimental_hic.npy")
@@ -131,6 +177,10 @@ Optimize the Flory-Huggins χ interaction parameters to match experimental Hi-C 
    # Set up maximum entropy optimization
    config = default.config.copy()
    params = default.params.copy()
+
+   # Maxent requires target observables ("goals") derived from the
+   # experimental Hi-C, sequences, and config
+   params["goals"] = get_goals(hic_experimental, sequences, config)
 
    me = Maxent(
        root="maxent_output",
@@ -143,11 +193,15 @@ Optimize the Flory-Huggins χ interaction parameters to match experimental Hi-C 
    # Run optimization: learns χ parameters that reproduce Hi-C
    me.fit()
 
+   # To continue an interrupted run later (resumes and finishes remaining
+   # iterations automatically):
+   # me = Maxent.resume("maxent_output")
+
 
 High-Level MaxentPipeline
 -------------------------
 
-The ``MaxentPipeline`` class is a high-level wrapper for spawning multiple maximum entropy training runs. Use it to systematically compare different sequence representations derived from Hi-C data (e.g., varying the number of principal components):
+The ``MaxentPipeline`` class is a high-level wrapper for spawning multiple maximum entropy training runs. Unlike ``Maxent``, it computes ``goals`` for you internally. Use it to systematically compare different sequence representations derived from Hi-C data (e.g., varying the number of principal components):
 
 .. code-block:: python
 

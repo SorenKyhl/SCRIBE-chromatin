@@ -71,234 +71,40 @@ make docs       # Build only
 
 ## Quick Start
 
-### Data Setup
-
-SCRIBE uses experimental Hi-C and ChIP-seq data for training and validation. The data files are large and hosted externally. We provide helper functions to download an example dataset for HCT116 cells from ENCODE.
-
-**Data Location:**
-- Set `SCRIBE_DATA_DIR` environment variable to specify a custom location
-- Default location: `~/.scribe/data/`
+The fastest way to get started is to run the self-contained scripts in
+[`examples/quickstart/`](examples/quickstart/). They download an example
+HCT116 Hi-C + ChIP-seq dataset (if not already present), process it into
+polymer sequences, and run a full simulation or maximum-entropy optimization
+end to end:
 
 ```bash
-# Optional: Set custom data directory
-export SCRIBE_DATA_DIR=/path/to/your/data
+cd examples/quickstart
+
+# Data -> forward simulation -> contact map comparison
+python full_simulation.py
+
+# Data -> maximum entropy optimization of chi parameters
+python full_maxent.py
 ```
 
-**Quick Setup (Recommended):**
+Both scripts write their outputs relative to the current directory, so you
+can run them from any results directory you like, e.g.:
+
 ```bash
-# Check what data is available/missing
-python -m scribe.download_data --status
-
-# Download all data (~36 GB: Hi-C + ChIP-seq)
-python -m scribe.download_data --all
-
-# Or download separately:
-python -m scribe.download_data --hic              # Hi-C only (~29 GB)
-python -m scribe.download_data --chipseq-encode    # ENCODE ChIP-seq (6 marks, ~6.8 GB)
-python -m scribe.download_data --chipseq-histone   # All histone ChIP-seq (12 marks, ~12.9 GB)
+mkdir -p /path/to/results/run1 && cd /path/to/results/run1
+python /path/to/SCRIBE-chromatin/examples/quickstart/full_simulation.py
 ```
 
-### Loading Data by Cell Type (Recommended)
+`examples/quickstart/` also has a numbered set of scripts
+(`01_download_data.py` through `06_pipeline_sweep.py`) that break the same
+workflow into individual steps, useful for inspecting or customizing one
+stage at a time. See [`examples/quickstart/README.md`](examples/quickstart/README.md)
+for the full list.
 
-The high-level `DataPipeline` loads raw Hi-C and ChIP-seq files, processes them (pooling, normalization), and prepares model-ready inputs:
-
-```python
-from scribe.data_pipeline import DataPipeline
-import numpy as np
-
-# Create pipeline for HCT116 cell line data
-pipeline = DataPipeline(
-    cell="HCT116_auxin",  # Cell line/condition
-    chrom=2,               # Chromosome number
-    nbeads=1024,           # Number of polymer beads
-)
-
-# Check data availability
-print(pipeline.status())
-
-# Load Hi-C contact map (with automatic pooling and caching)
-hic = pipeline.load_hic()
-
-# Load all ChIP-seq tracks as a dictionary
-sequences = pipeline.load_chipseq()
-print(f"Loaded tracks: {list(sequences.keys())}")
-
-# Or get as array directly
-seq_array = pipeline.load_chipseq_array()
-
-# Save for simulation
-np.save("chipseq_sequences.npy", seq_array)
-np.save("experimental_hic.npy", hic)
-```
-
-### Low-Level Data Loading
-
-For custom file paths or fine-grained control, use `DataLoader`:
-
-```python
-from scribe.data_loader import DataLoader
-import numpy as np
-
-# Define genomic region explicitly
-loader = DataLoader(
-    res=100000,          # 100 kbp resolution
-    chrom=2,             # chromosome number
-    start=0,             # start position (bp)
-    end=102_400_000,     # end position (bp)
-    size=1024            # number of polymer beads
-)
-
-# Load from specific file paths
-hic = loader.load_hic("/path/to/file.hic")
-sequences = loader.load_chipseq_from_directory("/path/to/chipseq/", method="mean")
-
-seq_array = np.stack(list(sequences.values()), axis=1)
-```
-
-### Run a Single Simulation
-
-Run a forward simulation using epigenetic sequences and interaction parameters (χ) to generate an ensemble of 3D genome structures:
-
-```python
-from scribe.scribe_sim import ScribeSim
-from scribe import default
-from scribe.plot_contactmap import plot_contactmap
-import numpy as np
-
-# Load default configuration (contains interaction parameters χ)
-config = default.config.copy()
-
-# Load polymer sequences (epigenetic mark occupancies from ChIP-seq)
-sequences = np.load("chipseq_sequences.npy")
-
-# Create simulation: sequences define bead identities, config defines χ parameters
-sim = ScribeSim(root="output", config=config, seqs=sequences)
-
-# Run equilibration + production to generate ensemble of 3D structures
-sim.run_eq(eq_sweeps=10000, prod_sweeps=50000)
-
-# Visualize the resulting contact map (averaged over ensemble)
-plot_contactmap("output")
-```
-
-### Maximum Entropy Optimization
-
-Optimize the Flory-Huggins χ interaction parameters to match experimental Hi-C contact maps. The maximum entropy framework iteratively runs simulations and updates χ until the predicted contact frequencies match the experimental data:
-
-```python
-from scribe.maxent import Maxent
-from scribe import default
-
-# Load experimental Hi-C contact map (training target)
-hic_experimental = np.load("experimental_hic.npy")
-
-# Load polymer sequences from ChIP-seq (defines bead identities)
-sequences = np.load("chipseq_sequences.npy")
-
-# Set up maximum entropy optimization
-config = default.config.copy()
-params = default.params.copy()
-
-me = Maxent(
-    root="maxent_output",
-    params=params,
-    config=config,
-    seqs=sequences,       # Input: epigenetic sequences
-    gthic=hic_experimental  # Target: experimental Hi-C to match
-)
-
-# Run optimization: learns χ parameters that reproduce Hi-C
-me.fit()
-```
-
-### High-Level MaxentPipeline
-
-The `MaxentPipeline` class is a high-level wrapper for spawning multiple maximum entropy training runs. Use it to systematically compare different sequence representations derived from Hi-C data (e.g., varying the number of principal components):
-
-```python
-from scribe.maxent_pipeline import MaxentPipeline
-from scribe import analysis
-from scribe import default
-import functools
-import numpy as np
-
-# Load data and config
-experimental_hic = np.load("experimental_hic.npy")
-config = default.config.copy()
-params = default.params.copy()
-
-# Sweep over different numbers of principal components
-for k in range(1, 11):
-    seqs_method = functools.partial(analysis.get_sequences, k=k)
-    pipe = MaxentPipeline(
-        name=f"pc_{k}",
-        gthic=experimental_hic,
-        config=config,
-        params=params,
-        seqs_method=seqs_method  # Derives 2k sequences from Hi-C PCA
-    )
-    pipe.fit()  # Runs full maximum entropy optimization
-```
-
-### Simulation Analysis
-
-Analyze simulation results and compare predicted contact maps to experimental Hi-C:
-
-```python
-from scribe.scribe_sim import ScribeSim
-from scribe.analysis_pipeline import sim_analysis, compare_analysis
-from scribe.analysis import SCC
-from scipy.stats import pearsonr
-import numpy as np
-
-# Load simulation via dispatcher
-sim = ScribeSim.from_directory("output")
-
-# Full analysis: energy, contact map, observables, χ parameters
-sim_analysis(sim)
-
-# Compare to experimental Hi-C (ground truth)
-experimental_hic = np.load("experimental_hic.npy")
-sim.gthic = experimental_hic
-compare_analysis(sim)  # Generates comparison plots (scatter, triangle, difference)
-
-# Quantitative metrics
-scc = SCC(sim.hic, experimental_hic)           # Stratum-adjusted correlation
-pearson_r, _ = pearsonr(sim.hic.flatten(), experimental_hic.flatten())
-print(f"SCC: {scc:.3f}, Pearson r: {pearson_r:.3f}")
-```
-
-### Maximum Entropy Analysis
-
-Analyze convergence and learned parameters from a completed maximum entropy optimization:
-
-```python
-from scribe.maxent import Maxent
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Load a completed maxent run
-me = Maxent(root="maxent_output", load=True)
-
-# Plot optimization convergence (loss and parameter updates)
-me.plot_convergence()  # Saves loss.png and param_convergence.png
-
-# Visualize learned χ parameters over iterations
-me.plot_plaid_chis(legend=True)  # Track χ_IJ evolution
-me.plot_diag_chis()               # Track diagonal parameters
-
-# Load final χ matrix and SCC trajectory
-final_chis = np.load("maxent_output/chis.npy")[-1]  # Final χ parameters
-scc_trajectory = np.loadtxt("maxent_output/SCC.txt")
-
-# Plot training progress
-plt.figure()
-plt.plot(scc_trajectory)
-plt.xlabel("Iteration")
-plt.ylabel("SCC (Stratum-adjusted Correlation)")
-plt.title("Maximum Entropy Training Progress")
-plt.savefig("training_progress.png")
-```
+For a walkthrough of the same steps as library calls (data loading,
+`ScribeSim`, `Maxent`, `MaxentPipeline`, and result analysis), see the
+[Quick Start docs](docs/source/quickstart.rst) and
+[Analysis docs](docs/source/analysis.rst).
 
 ## Software Architecture
 
@@ -346,6 +152,7 @@ The Python API is organized into three conceptual layers:
 
 See the `examples/` directory for detailed tutorials:
 
+- **`quickstart/`** - Full workflow scripts and step-by-step numbered examples (start here)
 - **`single-simulation/`** - Basic simulation setup and execution
 - **`chipseq_maxent/`** - Training on ChIP-seq data
 - **`sweep_pcs/`** - Parameter sweep over principal components
