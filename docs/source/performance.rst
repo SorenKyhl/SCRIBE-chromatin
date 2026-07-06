@@ -136,9 +136,21 @@ Remaining opportunities
 
 Not yet done; roughly in increasing order of risk/effort:
 
-- **``meshBeads`` resets every cell.** The grid move (and its revert) reset all
-  ``(L+1)^3`` cells and re-insert every bead each sweep. Resetting only occupied
-  or active cells would cut most of the remaining grid-move cost.
+- **``Cell::contains`` as a flat vector (the real ``meshBeads`` lever).**
+  Investigated the "reset only occupied cells" idea and it is *not* worth it:
+  the per-cell ``std::fill`` reset is only ~1-2% of runtime, and although most
+  active cells are empty (for the converged config ~344 of ~1300 active cells
+  are occupied, ~3 beads each), skipping the empty ones saves ~1% at most.
+  The actual cost of ``meshBeads`` (~7% of runtime) is the churn of each cell's
+  ``std::unordered_set<Bead*> contains``: re-inserting all beads (hash + node
+  malloc, ~6%) and freeing nodes on clear (~3%). That same structure is also
+  inserted/erased by every local move's ``moveIn``/``moveOut``. Converting
+  ``contains`` to a flat ``std::vector<Bead*>`` (as was done for the flagged-cell
+  set) would make ``clear`` free-free and inserts ``push_back``, speeding up
+  ``meshBeads`` *and* the local moves. ``moveOut`` becomes an O(k) linear erase,
+  but k is tiny (density cap, ~3 beads/cell). Changes cell iteration order, so
+  it needs statistical rather than bitwise validation. This is the productive
+  version of the ``meshBeads`` optimization.
 - **Grid-move frequency.** The grid move runs every sweep to suppress
   discretization artifacts. Reducing its frequency is a modeling decision, not a
   pure optimization -- it changes results -- so it is left to the user.
