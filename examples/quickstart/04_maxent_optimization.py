@@ -12,13 +12,14 @@ Prerequisites:
 
 Output:
     - maxent_output/: Optimization output directory
-    - maxent_output/chis.npy: Learned χ parameters
+    - maxent_output/plaid_chis.npy, maxent_output/daig_chis.npy: Learned χ parameters
     - maxent_output/SCC.txt: Stratum-adjusted correlation over iterations
 """
 
 import numpy as np
 
 from scribe import default
+from scribe.analysis import get_goals
 from scribe.maxent import Maxent
 
 
@@ -45,6 +46,7 @@ def main():
     # Set up maximum entropy optimization
     config = default.config.copy()
     params = default.params.copy()
+    params["goals"] = get_goals(hic_experimental, sequences, config)
 
     print("\nMaximum entropy parameters:")
     print(f"  - Iterations: {params.get('iterations', 'default')}")
@@ -70,7 +72,7 @@ def main():
 
     print("\nOptimization complete!")
     print("Output saved to: maxent_output/")
-    print("  - chis.npy: Learned interaction parameters")
+    print("  - plaid_chis.npy, daig_chis.npy: Learned interaction parameters")
     print("  - SCC.txt: Correlation trajectory")
 
 

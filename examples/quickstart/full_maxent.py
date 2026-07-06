@@ -18,7 +18,7 @@ Output:
     - chipseq_sequences.npy: Processed polymer sequences
     - experimental_hic.npy: Hi-C contact map
     - maxent_output/: Optimization results
-    - maxent_output/chis.npy: Learned χ parameters
+    - maxent_output/plaid_chis.npy, maxent_output/daig_chis.npy: Learned χ parameters
 """
 
 import subprocess
@@ -28,6 +28,7 @@ from pathlib import Path
 import numpy as np
 
 from scribe import default
+from scribe.analysis import get_goals
 from scribe.data_pipeline import DataPipeline
 from scribe.maxent import Maxent
 
@@ -92,6 +93,7 @@ def run_maxent(sequences, experimental_hic):
 
     config = default.config.copy()
     params = default.params.copy()
+    params["goals"] = get_goals(experimental_hic, sequences, config)
 
     print("\nConfiguration:")
     print(f"  - Beads: {config.get('nbeads', sequences.shape[0])}")
@@ -129,11 +131,13 @@ def analyze_results():
     output_dir = Path("maxent_output")
 
     # Load results
-    if (output_dir / "chis.npy").exists():
-        chis = np.load(output_dir / "chis.npy")
+    if (output_dir / "plaid_chis.npy").exists():
+        plaid_chis = np.load(output_dir / "plaid_chis.npy")
+        diag_chis = np.load(output_dir / "daig_chis.npy")
         print("\nLearned χ parameters:")
-        print(f"  - Shape: {chis.shape}")
-        print(f"  - Final χ range: [{chis[-1].min():.3f}, {chis[-1].max():.3f}]")
+        print(f"  - Plaid shape: {plaid_chis.shape}, diagonal shape: {diag_chis.shape}")
+        print(f"  - Final plaid χ range: [{plaid_chis[-1].min():.3f}, {plaid_chis[-1].max():.3f}]")
+        print(f"  - Final diagonal χ range: [{diag_chis[-1].min():.3f}, {diag_chis[-1].max():.3f}]")
 
     if (output_dir / "SCC.txt").exists():
         scc = np.loadtxt(output_dir / "SCC.txt")
@@ -167,7 +171,7 @@ def main():
     print("=" * 60)
     print("\nOutputs:")
     print("  - maxent_output/: Optimization results")
-    print("  - maxent_output/chis.npy: Learned χ parameters")
+    print("  - maxent_output/plaid_chis.npy, maxent_output/daig_chis.npy: Learned χ parameters")
     print("  - maxent_output/SCC.txt: Correlation trajectory")
     print("  - chipseq_sequences.npy: Polymer sequences")
     print("  - experimental_hic.npy: Experimental Hi-C")
