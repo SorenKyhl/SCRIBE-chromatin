@@ -37,6 +37,12 @@ def test_integrated_time_single_trace():
     assert mixing.integrated_time(x) == pytest.approx(tau_ar1(0.8), rel=0.15)
 
 
+def test_integrated_time_from_acf_matches():
+    x = ar1(0.7, 5000, m=3, seed=8)
+    rho = np.mean([mixing.autocorr_function(ch) for ch in x], axis=0)
+    assert mixing.integrated_time_from_acf(rho) == mixing.integrated_time(x)
+
+
 def test_batch_means_time_ar1():
     x = ar1(0.9, 20000, m=8, seed=1)
     assert mixing.batch_means_time(x) == pytest.approx(tau_ar1(0.9), rel=0.2)

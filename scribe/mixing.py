@@ -81,6 +81,16 @@ def integrated_time(x, c: float = 5.0, return_window: bool = False):
     """
     chains = _as_chains(x)
     rho = np.mean([autocorr_function(ch) for ch in chains], axis=0)
+    return integrated_time_from_acf(rho, c, return_window)
+
+
+def integrated_time_from_acf(rho: np.ndarray, c: float = 5.0, return_window: bool = False):
+    """Sokal-windowed integrated time from a normalized autocorrelation
+    function (e.g. the mean of per-chain :func:`autocorr_function` results).
+
+    Lets callers compute each chain's ACF once and reuse it, e.g. to
+    bootstrap over chains by averaging resampled ACFs.
+    """
     taus = 2.0 * np.cumsum(rho) - 1.0
     m = np.arange(len(taus)) < c * taus
     window = int(np.argmin(m)) if not m.all() else len(taus) - 1
