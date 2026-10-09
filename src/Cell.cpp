@@ -23,6 +23,33 @@ int Cell::diag_cutoff;
 int Cell::diag_start;
 bool Cell::diagonal_binning;
 std::vector<int> Cell::diagonal_bin_lookup;
+std::vector<int> Cell::diag_bin_of;
+std::vector<int> Cell::diag_nbonds_of;
+std::vector<double> Cell::diag_weight_of;
+
+void Cell::setInteractions(int nbeads, const std::vector<double> &diag_chis,
+                           bool diagonal_on) {
+    // must run after all diagonal parameters are read
+    diag_bin_of.assign(nbeads, -1);
+    diag_nbonds_of.assign(nbeads, 0);
+    diag_weight_of.assign(nbeads, 0.0);
+    if (!diagonal_on) {
+        return; // binning parameters are unset
+    }
+    for (int sep = 0; sep < nbeads; sep++) {
+        if ((sep <= diag_cutoff) && (sep >= diag_start)) {
+            int d = sep - diag_start; // TODO check that this works for
+                                      // non-zero diag_start
+            diag_bin_of[sep] = binDiagonal(d);
+            if (double_count_main_diagonal) {
+                diag_nbonds_of[sep] = 2; // both main and off diagonal count twice
+            } else {
+                diag_nbonds_of[sep] = d ? 2 : 1; // count two for all off-diagonal
+            }
+            diag_weight_of[sep] = diag_chis[diag_bin_of[sep]] * diag_nbonds_of[sep];
+        }
+    }
+}
 
 void Cell::setBeadInteractions(std::vector<Bead> &beads,
                                const Eigen::MatrixXd &chis) {
@@ -229,54 +256,42 @@ int Cell::binDiagonal(int d) {
 }
 
 double Cell::getDiagEnergy(const std::vector<double> &diag_chis) {
-    // diag_phis are likewise still current for a valid cache
+    // U = beadvol/vol * sum_bins diag_chis[b] * count[b], summed directly per
+    // pair as beadvol/vol * sum_pairs diag_weight_of[|i - j|] (built from the
+    // same diag_chis by setInteractions). Does not fill diag_phis; the
+    // observables get those from updateDiagPhis.
     if (diag_energy_valid) {
         return diag_energy_cache;
     }
-    for (int i = 0; i < diag_nbins; i++) {
-        diag_phis[i] = 0;
-    }
-
-    int d_index; // genomic separation (index for diag_phis)
-    int imax = (int)contains.size();
-    // Reused scratch buffer: .clear() keeps capacity, so after warmup this
-    // avoids a heap allocation on every call (this is the hottest inner loop).
-    static thread_local std::vector<int> indices;
-    indices.clear();
-    for (const auto &elem : contains) {
-        indices.push_back(elem->id);
-    }
-
-    // count pairwise contacts  -- include self-self interaction!!
-    for (int i = 0; i < imax; i++) {
-        for (int j = i; j < imax; j++) {
-            int d = std::abs(indices[i] - indices[j]);
-            if ((d <= diag_cutoff) && (d >= diag_start)) {
-                d -= diag_start; // TODO check that this works for non-zero
-                                 // diag_start
-                d_index = binDiagonal(d);
-
-                int nbonds;
-                if (Cell::double_count_main_diagonal)
-                {
-                    nbonds = 2;  // both main and off diagonal count twice
-                }
-                else {
-                    nbonds = d ? 2 : 1;       // count two for all off-diagonal
-                }
-                diag_phis[d_index] += nbonds; // diag phis is just a count,
-                                              // multiply by volumes later
-            }
-        }
-    }
-
+    std::size_t imax = contains.size();
     double Udiag = 0;
-    for (int i = 0; i < diag_nbins; i++) {
-        Udiag += diag_chis[i] * diag_phis[i];
+    // pairwise contacts -- include self-self interaction!!
+    for (std::size_t i = 0; i < imax; i++) {
+        int id_i = contains[i]->id;
+        for (std::size_t j = i; j < imax; j++) {
+            Udiag += diag_weight_of[std::abs(id_i - contains[j]->id)];
+        }
     }
     diag_energy_cache = Udiag * beadvol / vol;
     diag_energy_valid = true;
     return diag_energy_cache;
+};
+
+void Cell::updateDiagPhis() {
+    // per-bin pair counts, for the diagonal observables
+    std::fill(diag_phis.begin(), diag_phis.end(), 0);
+    std::size_t imax = contains.size();
+    // count pairwise contacts  -- include self-self interaction!!
+    for (std::size_t i = 0; i < imax; i++) {
+        int id_i = contains[i]->id;
+        for (std::size_t j = i; j < imax; j++) {
+            int sep = std::abs(id_i - contains[j]->id);
+            int bin = diag_bin_of[sep];
+            if (bin >= 0) {
+                diag_phis[bin] += diag_nbonds_of[sep];
+            }
+        }
+    }
 };
 
 double Cell::getBoundaryEnergy(const double boundary_chi, const double delta) {

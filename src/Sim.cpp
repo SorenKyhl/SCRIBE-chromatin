@@ -492,6 +492,8 @@ void Sim::readInput() {
     assert(config.contains("conservative_contact_pooling"));
     conservative_contact_pooling = config["conservative_contact_pooling"];
 
+    Cell::setInteractions(nbeads, diag_chis, diagonal_on);
+
     assert(config.contains("seed"));
     int seed = config["seed"];
     rng = std::make_unique<RanMars>(seed);
@@ -1674,8 +1676,6 @@ void Sim::saveObservables(int sweep) {
     // if dmatrix_on and (smatrix_on or ematrix_on), diagonal_on will be set to
     // False for computational efficiency
     {
-        double Udiag = grid.diagEnergy(
-            grid.active_cells_vec, diag_chis); // to update phis_diag? jan 28-2022
         diag_obs_out = fopen(diag_obs_out_filename.c_str(), "a");
         fprintf(diag_obs_out, "%d", sweep);
 
