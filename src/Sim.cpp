@@ -31,6 +31,7 @@ Sim::Sim(std::string filename) {
 
 // return stdout to original stream, if redirected
 Sim::~Sim() {
+    closeStatsFiles();
     if (redirect_stdout)
         returnStdout();
 }
@@ -1091,6 +1092,7 @@ void Sim::MC() {
     }
 
     checkConsistency();
+    closeStatsFiles();
     std::cout << "overall acceptance rate: "
               << (float)acc / (nSweeps * nSteps) * 100.0 << "%" << std::endl;
 }
@@ -1615,6 +1617,26 @@ void Sim::saveXyz() {
     fclose(xyz_out);
 }
 
+FILE *Sim::openStats(FILE *&f, const std::string &filename) {
+    // Opened on first use in append mode (makeOutputFiles truncated it) and
+    // kept open: re-opening and closing every file on every stats dump was a
+    // measurable share of runtime. Callers fflush after each dump.
+    if (!f) {
+        f = fopen(filename.c_str(), "a");
+    }
+    return f;
+}
+
+void Sim::closeStatsFiles() {
+    for (FILE **f : {&energy_out, &obs_out, &diag_obs_out, &constant_obs_out,
+                     &density_out, &extra_out}) {
+        if (*f) {
+            fclose(*f);
+            *f = nullptr;
+        }
+    }
+}
+
 void Sim::saveEnergy(int sweep) {
     double bonded = 0;
     bonded = bonded_on ? getAllBondedEnergy() : 0;
@@ -1640,15 +1662,15 @@ void Sim::saveEnergy(int sweep) {
     double boundary = 0;
     boundary =
         boundary_attract_on ? getJustBoundaryEnergy(grid.active_cells_vec) : 0;
-    energy_out = fopen(energy_out_filename.c_str(), "a");
+    openStats(energy_out, energy_out_filename);
     fprintf(energy_out, "%d\t %lf\t %lf\t %lf\t %lf\t %lf\n", sweep, bonded,
             plaid, diagonal, boundary, bonded + plaid + diagonal + boundary);
-    fclose(energy_out);
+    fflush(energy_out);
 }
 
 void Sim::saveObservables(int sweep) {
     if (plaid_on) {
-        obs_out = fopen(obs_out_filename.c_str(), "a");
+        openStats(obs_out, obs_out_filename);
         fprintf(obs_out, "%d", sweep);
 
         std::vector<double> ij_contacts;
@@ -1658,25 +1680,25 @@ void Sim::saveObservables(int sweep) {
         }
 
         fprintf(obs_out, "\n");
-        fclose(obs_out);
+        fflush(obs_out);
     }
 
     if (constant_chi_on) {
-        obs_out = fopen(constant_obs_out_filename.c_str(), "a");
-        fprintf(obs_out, "%d", sweep);
+        openStats(constant_obs_out, constant_obs_out_filename);
+        fprintf(constant_obs_out, "%d", sweep);
 
         double contacts = grid.getContacts();
-        fprintf(obs_out, "\t%lf", contacts);
+        fprintf(constant_obs_out, "\t%lf", contacts);
 
-        fprintf(obs_out, "\n");
-        fclose(obs_out);
+        fprintf(constant_obs_out, "\n");
+        fflush(constant_obs_out);
     }
 
     if (diagonal_on || dmatrix_on)
     // if dmatrix_on and (smatrix_on or ematrix_on), diagonal_on will be set to
     // False for computational efficiency
     {
-        diag_obs_out = fopen(diag_obs_out_filename.c_str(), "a");
+        openStats(diag_obs_out, diag_obs_out_filename);
         fprintf(diag_obs_out, "%d", sweep);
 
         std::vector<double> diag_obs(diag_chis.size(), 0.0);
@@ -1687,11 +1709,11 @@ void Sim::saveObservables(int sweep) {
         }
 
         fprintf(diag_obs_out, "\n");
-        fclose(diag_obs_out);
+        fflush(diag_obs_out);
     }
 
     if (dump_density) {
-        density_out = fopen(density_out_filename.c_str(), "a");
+        openStats(density_out, density_out_filename);
         fprintf(density_out, "%d", sweep);
 
         double avg_density = 0;
@@ -1702,15 +1724,15 @@ void Sim::saveObservables(int sweep) {
         }
         avg_density /= i;
         fprintf(density_out, " %lf\n", avg_density);
-        fclose(density_out);
+        fflush(density_out);
     }
 
-    extra_out = fopen(extra_out_filename.c_str(), "a");
+    openStats(extra_out, extra_out_filename);
     double phi_c = grid.getChromatinVolfrac();
     double phi_c2 = grid.getChromatinVolfrac2();
     double phi_cD = grid.getChromatinVolfracD();
     fprintf(extra_out, "%.8f %.8f %.8f\n", phi_c, phi_c2, phi_cD);
-    fclose(extra_out);
+    fflush(extra_out);
 }
 
 // write contact map to file

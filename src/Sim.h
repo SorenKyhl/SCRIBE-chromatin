@@ -59,12 +59,15 @@ public:
 	std::streambuf* cout_stream_buffer; // see: redirectStdout
 	std::fstream logfile;
 	FILE *xyz_out;
-	FILE *energy_out;
-	FILE *obs_out;
-	FILE *diag_obs_out;
-	FILE *constant_obs_out;
-	FILE *density_out;
-	FILE *extra_out;
+	// stats files stay open for the whole run (openStats), flushed per dump
+	FILE *energy_out = nullptr;
+	FILE *obs_out = nullptr;
+	FILE *diag_obs_out = nullptr;
+	FILE *constant_obs_out = nullptr;
+	FILE *density_out = nullptr;
+	FILE *extra_out = nullptr;
+	static FILE *openStats(FILE *&f, const std::string &filename);
+	void closeStatsFiles();
 	std::string data_out_filename;
 	std::string log_filename;
 	std::string xyz_out_filename;
