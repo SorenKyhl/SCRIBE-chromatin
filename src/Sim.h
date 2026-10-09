@@ -201,7 +201,7 @@ public:
 	void updateContactsGridNonconservative();
 	void updateContactsDistance();
 
-	Eigen::MatrixXd unit_vec(Eigen::MatrixXd b);
+	Eigen::RowVector3d unit_vec(Eigen::RowVector3d b);
 	void readInput();
 	bool outside_boundary(Eigen::RowVector3d r);
 	bool allBeadsInBoundary();

@@ -177,8 +177,8 @@ void Sim::updateContactsDistance() {
     }
 }
 
-// generates random unit vector
-Eigen::MatrixXd Sim::unit_vec(Eigen::MatrixXd b) {
+// generates random unit vector (fixed-size, so no heap allocation per call)
+Eigen::RowVector3d Sim::unit_vec(Eigen::RowVector3d b) {
     double R1, R2, R3;
     do {
         R1 = (2 * rng->uniform() - 1);
