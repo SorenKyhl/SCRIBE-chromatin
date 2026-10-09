@@ -445,9 +445,13 @@ Modeling decisions, not optimizations:
   the observables' autocorrelation time before changing it.
 - **Move-set efficiency.** Sweeps/sec is not the quantity that matters;
   independent samples per CPU-second is. Translation and crankshaft segments
-  average ~3 beads (``exp_decay = nbeads / decay_length = 2``). Tuning
-  ``decay_length``, step sizes or the move mix could matter more than any
-  remaining code change, but needs a study measuring autocorrelation times.
+  average ~3 beads (``exp_decay = nbeads / decay_length = 2``), and pivots
+  only rotate the last ~2 beads of a chain end. Tuning the move set could
+  matter more than any remaining code change. Move counts, segment scales
+  and step sizes are now separate config keys (see :doc:`configuration`).
+  ``dump_mixing_stats`` plus :mod:`scribe.mixing` measure per-move
+  statistics and the autocorrelation time of every observable, which are
+  the inputs for that tuning.
 
 Not a performance issue, but noticed while verifying the grid-move change:
 ``MCmove_grid`` rejects only when the summed density-cap energy reaches
