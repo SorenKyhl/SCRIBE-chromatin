@@ -172,7 +172,8 @@ are only meaningful relative to each other.
        doubled). Each bead carries ``S d`` (``Bead::chi_d``) and each cell keeps
        ``S n`` (``Cell::chi_n``) up to date in ``moveIn``/``moveOut``, so
        ``getEnergy`` is a 12-term dot product with one division instead of 78
-       terms with a division each. Rounding-changing.
+       terms with a division each. Rounding-changing. See *How the energy
+       optimizations work*.
      - ~2500 -> ~3200
      - ``48cc9b7``
    * - Diagonal energy from a per-separation weight table
@@ -181,7 +182,7 @@ are only meaningful relative to each other.
        genomic separation instead of binning into ``diag_phis`` and dotting.
        ``diag_phis`` are filled only for the observables
        (``Cell::updateDiagPhis``, same integer counts as before).
-       Rounding-changing.
+       Rounding-changing. See *How the energy optimizations work*.
      - ~3200 -> ~4080
      - ``fae31e6``
 
@@ -190,6 +191,98 @@ Cumulatively the engine is now about **6.7x** faster than before this work
 ``Cell::contains`` through the observables pass give ~1.57x over ``2abf125``
 (~1570 -> ~2470, interleaved runs); the two rounding-changing energy changes
 give another ~1.63x (``bb32a69`` measured at ~2500 on 2026-10-09, -> ~4080).
+
+How the energy optimizations work
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Background: where the energy comes from.** Space is divided into grid
+cells. A cell's nonbonded energy depends only on which beads are inside it,
+so an MC move only needs to recompute the energy of the few cells that beads
+moved out of or into, before and after the move. That per-cell calculation
+runs millions of times per run, so it dominates. It has two parts: the
+*plaid* term (interactions between epigenetic bead types) and the *diagonal*
+term (interactions that depend on how far apart two beads are along the
+chain).
+
+**Plaid energy: keep a running "interaction field" per cell.** Each bead has
+a type vector ``d`` (how much of each of the 12 marks it carries; values can
+be fractional). A cell sums these into ``typenums`` = ``n``, its total amount
+of each type. The plaid energy adds up ``chi_ij * n_i * n_j`` over every pair
+of types ``i <= j``: 78 pairs for 12 types, recomputed from scratch every
+time a cell is evaluated.
+
+With two types A and B, that is::
+
+   U = chi_AA n_A^2 + chi_AB n_A n_B + chi_BB n_B^2      (times beadvol/vol)
+
+Regroup it by asking, for each type, "how strongly is one unit of this type
+pulled or pushed by everything currently in the cell?" Call that the cell's
+*field* for that type::
+
+   field_A = 2 chi_AA n_A + chi_AB n_B
+   field_B = chi_AB n_A + 2 chi_BB n_B
+
+Then ``U = (n_A field_A + n_B field_B) / 2``. That is each type's amount times
+the field it feels, halved because every interacting pair gets counted once
+from each side. (In matrix form the field is ``S n``, where ``S`` is ``chis``
+made symmetric with its diagonal doubled.)
+
+The point is that the field is a plain sum over the beads in the cell: each
+bead contributes a fixed vector ``S d`` that never changes. So:
+
+- once at startup, each bead computes its own contribution ``S d``
+  (``Bead::chi_d``);
+- when a bead enters a cell, the cell adds that vector to its field
+  (``Cell::chi_n``), and subtracts it when the bead leaves. This happens in
+  the same loop that already updates ``typenums``, so it costs 12 extra
+  additions;
+- the energy is then just 12 multiply-adds (``n . field``) and one division,
+  instead of 78 multiply-adds that each also divide.
+
+The trade-off: the field is a running total, so it accumulates tiny rounding
+errors as beads come and go. ``typenums`` already works the same way, and
+both are rebuilt from scratch by the grid move's re-mesh every sweep. Even
+with grid moves off (no rebuild for 20000 sweeps), the output was unchanged.
+
+**Diagonal energy: look up each pair's contribution directly.** For every
+pair of beads in a cell (including each bead with itself), the genomic
+separation ``|i - j|`` falls into one of 28 distance bins, and each bin has
+an interaction strength ``diag_chis[bin]``. The old code worked like adding
+up a grocery bill by first counting how many items fall in each price
+category, then multiplying each count by its price:
+
+1. zero a 28-entry count array (``diag_phis``);
+2. for each pair, work out its bin and add 2 to that bin's count (1 for a
+   bead paired with itself);
+3. multiply all 28 counts by their ``diag_chis`` and add them up.
+
+With ~3 beads per cell there are only ~6 pairs, so steps 1 and 3 (28
+entries each) cost more than the pairs themselves. Since the result is just
+"the sum, over pairs, of that pair's strength", the new code builds a table
+once at startup: for every possible separation, the strength times the count
+(``diag_weight_of``). The energy is then just "for each pair, look up its
+separation in the table and add". No bins, no count array.
+
+The per-bin counts are still needed for the ``diag_observables`` output, but
+only when stats are written (every 10 sweeps), not on every energy
+evaluation. ``Cell::updateDiagPhis`` computes them then, from the same
+tables, so the observables are unchanged.
+
+**Why the obvious next step was slower.** By analogy with the plaid field,
+each cell could keep a running diagonal total, updated when a bead enters or
+leaves (add that bead's pairs with the beads already there). It measured ~5%
+*slower*. Cells are small, so recomputing ~6 pairs is already cheap. The
+running total, in contrast, must also be updated on moves that end up
+rejected and undone, and for every bead during the per-sweep re-mesh, which
+adds more work than it saves.
+
+**Why the results don't change even though rounding does.** Both changes
+compute the same quantity with the additions done in a different order.
+Floating-point addition is not exactly associative, so the last few digits
+(~1e-13 relative) can differ. That only matters if it flips an accept/reject
+decision, which requires the random number to land within that tiny margin
+of the acceptance threshold. That is rare enough that no flip showed up in
+any test (next section).
 
 Rounding-changing optimizations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
