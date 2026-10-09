@@ -34,6 +34,7 @@ void Cell::print() {
 void Cell::reset() {
     // clears population trackers
     contains.clear();
+    invalidateEnergy();
     std::fill(typenums.begin(), typenums.end(), 0); // DO NOT USE .clear()
     std::fill(phis.begin(), phis.end(), 0); // ... it doesn't re-assign to 0's
 };
@@ -41,7 +42,8 @@ void Cell::reset() {
 void Cell::moveIn(Bead *bead) {
     // updates local number of each type of bead, but does not recalculate phis
     // TODO update populations of distance ids
-    contains.insert(bead);
+    contains.push_back(bead);
+    invalidateEnergy();
     for (int i = 0; i < ntypes; i++) {
         typenums[i] += bead->d[i];
     }
@@ -50,7 +52,15 @@ void Cell::moveIn(Bead *bead) {
 void Cell::moveOut(Bead *bead) {
     // updates local number of each type of bead, but does not recalculate phis
     // TODO update populations of distance ids
-    contains.erase(bead);
+    invalidateEnergy();
+    // swap-and-pop: O(k) find, O(1) removal; order is irrelevant (this is a set)
+    for (std::size_t i = 0; i < contains.size(); i++) {
+        if (contains[i] == bead) {
+            contains[i] = contains.back();
+            contains.pop_back();
+            break;
+        }
+    }
     for (int i = 0; i < ntypes; i++) {
         typenums[i] -= bead->d[i];
     }
@@ -77,6 +87,11 @@ double Cell::getDensityCapEnergy() {
 };
 
 double Cell::getEnergy(const Eigen::MatrixXd &chis) {
+    // phis are already up to date for a valid cache: they were computed from
+    // the same (unchanged) typenums when the cache was filled
+    if (energy_valid) {
+        return energy_cache;
+    }
     for (int i = 0; i < ntypes; i++) {
         phis[i] = typenums[i] * beadvol / vol;
     }
@@ -87,6 +102,8 @@ double Cell::getEnergy(const Eigen::MatrixXd &chis) {
             U += chis(i, j) * phis[i] * phis[j] * vol / beadvol;
         }
     }
+    energy_cache = U;
+    energy_valid = true;
     return U;
 };
 
@@ -192,6 +209,10 @@ int Cell::binDiagonal(int d) {
 }
 
 double Cell::getDiagEnergy(const std::vector<double> &diag_chis) {
+    // diag_phis are likewise still current for a valid cache
+    if (diag_energy_valid) {
+        return diag_energy_cache;
+    }
     for (int i = 0; i < diag_nbins; i++) {
         diag_phis[i] = 0;
     }
@@ -233,7 +254,9 @@ double Cell::getDiagEnergy(const std::vector<double> &diag_chis) {
     for (int i = 0; i < diag_nbins; i++) {
         Udiag += diag_chis[i] * diag_phis[i];
     }
-    return Udiag * beadvol / vol;
+    diag_energy_cache = Udiag * beadvol / vol;
+    diag_energy_valid = true;
+    return diag_energy_cache;
 };
 
 double Cell::getBoundaryEnergy(const double boundary_chi, const double delta) {

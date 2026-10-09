@@ -177,8 +177,8 @@ void Sim::updateContactsDistance() {
     }
 }
 
-// generates random unit vector
-Eigen::MatrixXd Sim::unit_vec(Eigen::MatrixXd b) {
+// generates random unit vector (fixed-size, so no heap allocation per call)
+Eigen::RowVector3d Sim::unit_vec(Eigen::RowVector3d b) {
     double R1, R2, R3;
     do {
         R1 = (2 * rng->uniform() - 1);
@@ -467,6 +467,9 @@ void Sim::readInput() {
     angles_on = config["angles_on"];
     assert(config.contains("k_angle"));
     k_angle = config["k_angle"];
+    // with zero stiffness every angle energy is exactly 0; skip evaluating them
+    if (k_angle == 0)
+        angles_on = false;
 
     // parallel config params
     assert(config.contains("parallel"));
@@ -734,6 +737,10 @@ void Sim::calculateParameters() {
         throw std::runtime_error(
             "bead type is gaussian, set rotate_on = false");
     }
+
+    // Bead orientation only enters the energy for DSS bonds. When it doesn't,
+    // the crankshaft/pivot moves skip saving and rotating orientations.
+    orientation_active = (bond_type == "DSS");
 
     // number of Monte-Carlo proposal steps for each type
     n_disp = displacement_on ? nbeads : 0;
@@ -1297,33 +1304,35 @@ void Sim::MCmove_crankshaft() {
     Cell *new_cell_tmp;
 
     // execute move
-    try {
-        double Uold = 0;
-        if (bonded_on)
-            Uold += getBondedEnergy(first, last);
+    bool rejected = false;
 
-        for (int i = first; i <= last; i++) {
-            // save old configuration
-            // --------------------- can this be done more efficiently?
-            // ------------------------------------------
-            old_positions.push_back(beads[i].r);
+    double Uold = 0;
+    if (bonded_on)
+        Uold += getBondedEnergy(first, last);
+
+    for (int i = first; i <= last; i++) {
+        // save old configuration
+        old_positions.push_back(beads[i].r);
+        if (orientation_active)
             old_orientations.push_back(beads[i].u);
 
-            // step to new configuration, but don't update grid yet (going to
-            // check if in bounds first)
-            beads[i].r = du * (beads[i].r - beads[first - 1].r) +
-                         beads[first - 1].r.transpose();
+        // step to new configuration, but don't update grid yet (going to
+        // check if in bounds first)
+        beads[i].r = du * (beads[i].r - beads[first - 1].r) +
+                     beads[first - 1].r.transpose();
+        if (orientation_active)
             beads[i].u = du * beads[i].u;
-        }
+    }
 
-        // reject if moved out of simulation box, need to restore old bead
-        // positions
-        for (int i = first; i <= last; i++) {
-            if (outside_boundary(beads[i].r)) {
-                throw "exited simulation box";
-            }
+    // reject if moved out of simulation box, need to restore old bead positions
+    for (int i = first; i <= last; i++) {
+        if (outside_boundary(beads[i].r)) {
+            rejected = true;
+            break;
         }
+    }
 
+    if (!rejected) {
         // flag cells and bead swaps, but do not update the grid
         for (int i = first; i <= last; i++) {
             new_cell_tmp = grid.getCell(beads[i]);
@@ -1349,29 +1358,28 @@ void Sim::MCmove_crankshaft() {
         double Unew = getTotalEnergy(first, last, flagged_cells_buf);
 
         if (rng->uniform() < exp(Uold - Unew)) {
-            // std::cout << "Accepted"<< std::endl;
             acc += 1;
             acc_crank += 1;
             analytics.nbeads_moved += (last - first);
         } else {
-            // std::cout << "Rejected" << std::endl;
-            throw "rejected";
+            rejected = true;
         }
     }
-    // REJECTION CASES -- restore old conditions
-    catch (const char *msg) {
+
+    // REJECTION -- restore old conditions
+    if (rejected) {
         // restore particle positions
         for (std::size_t i = 0; i < old_positions.size(); i++) {
             beads[first + i].r = old_positions[i];
-            beads[first + i].u = old_orientations[i];
+            if (orientation_active)
+                beads[first + i].u = old_orientations[i];
         }
 
-        // restore grid allocations
-        if (bead_swaps_buf.size() > 0) {
-            for (auto const &x : bead_swaps_buf) {
-                x.old_cell->moveIn(&beads[x.bead]);  // back in to the old
-                x.new_cell->moveOut(&beads[x.bead]); // back out of the new
-            }
+        // restore grid allocations (bead_swaps_buf is empty if we rejected on
+        // the boundary check, before any grid update)
+        for (auto const &x : bead_swaps_buf) {
+            x.old_cell->moveIn(&beads[x.bead]);  // back in to the old
+            x.new_cell->moveOut(&beads[x.bead]); // back out of the new
         }
     }
 }
@@ -1457,30 +1465,35 @@ void Sim::MCmove_pivot(int sweep) {
     Cell *new_cell_tmp;
 
     // execute move
-    try {
-        double Uold = 0;
-        if (bonded_on)
-            Uold += getBondedEnergy(pivot - 1, pivot);
+    bool rejected = false;
 
-        for (int i = first; i <= last; i++) {
-            // save old positions
-            old_positions.push_back(beads[i].r);
+    double Uold = 0;
+    if (bonded_on)
+        Uold += getBondedEnergy(pivot - 1, pivot);
+
+    for (int i = first; i <= last; i++) {
+        // save old positions
+        old_positions.push_back(beads[i].r);
+        if (orientation_active)
             old_orientations.push_back(beads[i].u);
 
-            // step to new configuration, but don't update grid yet (going to
-            // check if in bounds first)
-            beads[i].r =
-                du * (beads[i].r - beads[pivot].r) + beads[pivot].r.transpose();
+        // step to new configuration, but don't update grid yet (going to
+        // check if in bounds first)
+        beads[i].r =
+            du * (beads[i].r - beads[pivot].r) + beads[pivot].r.transpose();
+        if (orientation_active)
             beads[i].u = du * beads[i].u;
-        }
+    }
 
-        // reject if moved out of simulation box
-        for (int i = first; i <= last; i++) {
-            if (outside_boundary(beads[i].r)) {
-                throw "exited simulation box";
-            }
+    // reject if moved out of simulation box
+    for (int i = first; i <= last; i++) {
+        if (outside_boundary(beads[i].r)) {
+            rejected = true;
+            break;
         }
+    }
 
+    if (!rejected) {
         // flag cells and bead swaps, but do not update the grid
         for (int i = first; i <= last; i++) {
             new_cell_tmp = grid.getCell(beads[i]);
@@ -1510,23 +1523,24 @@ void Sim::MCmove_pivot(int sweep) {
             acc_pivot += 1;
             analytics.nbeads_moved += (last - first);
         } else {
-            throw "rejected";
+            rejected = true;
         }
     }
-    // REJECTION CASES -- restore old conditions
-    catch (const char *msg) {
+
+    // REJECTION -- restore old conditions
+    if (rejected) {
         // restore particle positions
         for (std::size_t i = 0; i < old_positions.size(); i++) {
             beads[first + i].r = old_positions[i];
-            beads[first + i].u = old_orientations[i];
+            if (orientation_active)
+                beads[first + i].u = old_orientations[i];
         }
 
-        // restore bead allocations
-        if (bead_swaps_buf.size() > 0) {
-            for (auto const &x : bead_swaps_buf) {
-                x.old_cell->moveIn(&beads[x.bead]);  // back in to the old
-                x.new_cell->moveOut(&beads[x.bead]); // back out of the new
-            }
+        // restore bead allocations (bead_swaps_buf is empty if we rejected on
+        // the boundary check, before any grid update)
+        for (auto const &x : bead_swaps_buf) {
+            x.old_cell->moveIn(&beads[x.bead]);  // back in to the old
+            x.new_cell->moveOut(&beads[x.bead]); // back out of the new
         }
     }
 }
@@ -1638,11 +1652,10 @@ void Sim::saveObservables(int sweep) {
         obs_out = fopen(obs_out_filename.c_str(), "a");
         fprintf(obs_out, "%d", sweep);
 
-        for (int i = 0; i < nspecies; i++) {
-            for (int j = i; j < nspecies; j++) {
-                double ij_contacts = grid.get_ij_Contacts(i, j);
-                fprintf(obs_out, "\t%lf", ij_contacts);
-            }
+        std::vector<double> ij_contacts;
+        grid.get_ij_Contacts(nspecies, ij_contacts);
+        for (double c : ij_contacts) {
+            fprintf(obs_out, "\t%lf", c);
         }
 
         fprintf(obs_out, "\n");

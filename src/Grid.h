@@ -49,7 +49,7 @@ public:
 	double SmatrixEnergy(const std::vector<Cell*>& flagged_cells, const Eigen::MatrixXd &Smatrix);
 	double EmatrixEnergy(const std::vector<Cell*>& flagged_cells, const Eigen::MatrixXd &Ematrix);
 	double DmatrixEnergy(const std::vector<Cell*>& flagged_cells, const Eigen::MatrixXd &Dmatrix);
-	double get_ij_Contacts(int i, int j);
+	void get_ij_Contacts(int n, std::vector<double> &obs);
 	double getContacts();
 	void getDiagObs(std::vector<double> &diag_obs);
 	double cellCount();

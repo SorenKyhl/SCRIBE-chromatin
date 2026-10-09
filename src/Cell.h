@@ -11,7 +11,11 @@
 class Cell {
 public:
 	Eigen::RowVector3d r; // corner of cell RELATIVE TO ORIGIN... the grid origin diffuses
-	std::unordered_set<Bead*> contains; // beads associated inside this gridpoint
+	// Beads currently inside this cell. A flat vector (not a hash set): cells
+	// hold few beads (bounded by the density cap), so a contiguous scan for
+	// moveOut is faster than hashing, and clear()/push_back avoid the per-node
+	// malloc/free churn a hash set incurs on every re-mesh and cell crossing.
+	std::vector<Bead*> contains;
 	double vol;		                // volume of cell
 	static double beadvol; // volume of a bead in the cell.
 
@@ -19,6 +23,18 @@ public:
 	// MC move without a hash set (see Sim::flagCell). Compared against Sim's
 	// monotonic flag_generation; a stale value reads as "not flagged".
 	uint64_t flag_stamp = 0;
+
+	// Cached results of getEnergy / getDiagEnergy. A cell's energy depends only
+	// on its contents (typenums, bead ids) and volume, so it is reused until
+	// one of those changes: moveIn/moveOut/reset/volume updates call
+	// invalidateEnergy(). Most MC moves are accepted, so the "old" energy of a
+	// flagged cell is usually the cached "new" energy of an earlier move.
+	// Assumes chis/diag_chis are fixed for the lifetime of the simulation.
+	bool energy_valid = false;
+	bool diag_energy_valid = false;
+	double energy_cache = 0;
+	double diag_energy_cache = 0;
+	void invalidateEnergy() { energy_valid = false; diag_energy_valid = false; }
 
 	static int ntypes;  // number of bead types
 	std::vector<double> typenums = std::vector<double>(ntypes); // always up-to-date
