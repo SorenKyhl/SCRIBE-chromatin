@@ -24,6 +24,18 @@ public:
 	// monotonic flag_generation; a stale value reads as "not flagged".
 	uint64_t flag_stamp = 0;
 
+	// Cached results of getEnergy / getDiagEnergy. A cell's energy depends only
+	// on its contents (typenums, bead ids) and volume, so it is reused until
+	// one of those changes: moveIn/moveOut/reset/volume updates call
+	// invalidateEnergy(). Most MC moves are accepted, so the "old" energy of a
+	// flagged cell is usually the cached "new" energy of an earlier move.
+	// Assumes chis/diag_chis are fixed for the lifetime of the simulation.
+	bool energy_valid = false;
+	bool diag_energy_valid = false;
+	double energy_cache = 0;
+	double diag_energy_cache = 0;
+	void invalidateEnergy() { energy_valid = false; diag_energy_valid = false; }
+
 	static int ntypes;  // number of bead types
 	std::vector<double> typenums = std::vector<double>(ntypes); // always up-to-date
 	std::vector<double> phis = std::vector<double>(ntypes); // only up-to-date after energy calculation

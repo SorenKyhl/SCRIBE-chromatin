@@ -142,6 +142,7 @@ void Grid::getCellVolumes() {
         }
 
         cell->vol = s(0) * s(1) * s(2);
+        cell->invalidateEnergy();
         // total_vol += s(0)*s(1)*s(2);
     }
     // std::cout << "total vol " << total_vol << std::endl;
