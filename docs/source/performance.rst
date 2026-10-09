@@ -185,9 +185,15 @@ are only meaningful relative to each other.
        Rounding-changing. See *How the energy optimizations work*.
      - ~3200 -> ~4080
      - ``fae31e6``
+   * - Keep stats output files open
+     - Every stats dump (every 10 sweeps) ``fopen``-ed and ``fclose``-d four to
+       six files. They are now opened once, flushed after each dump so partial
+       output still reaches disk, and closed at the end of the run.
+     - ~4080 -> ~4250
+     - ``d51830e``
 
-Cumulatively the engine is now about **6.7x** faster than before this work
-(~610 -> ~4080 sweeps/sec on an M3). The byte-identical changes from
+Cumulatively the engine is now about **7x** faster than before this work
+(~610 -> ~4250 sweeps/sec on an M3). The byte-identical changes from
 ``Cell::contains`` through the observables pass give ~1.57x over ``2abf125``
 (~1570 -> ~2470, interleaved runs); the two rounding-changing energy changes
 give another ~1.63x (``bb32a69`` measured at ~2500 on 2026-10-09, -> ~4080).
@@ -358,16 +364,39 @@ The bitwise-preserving opportunities are largely used up, and so are the
 cheap rounding-changing ones in the energy. Rounding-changing work can't be
 proven correct by byte comparison, but in practice it stays byte-identical
 at printed precision (see *Rounding-changing optimizations*), which is the
-first thing to check. The engine is now limited by move bookkeeping rather
-than energy arithmetic.
+first thing to check.
 
-Bitwise-preserving, small:
+**Code-level optimization has reached the noise floor** (checked 2026-10-09).
+Run-to-run noise on the benchmark is now about +/-5%. Every remaining
+micro-optimization tried in that session landed within it or was slower, as
+was a compiler-level attempt (see the list below). The remaining cost is
+spread thinly: per move, ~3 beads move and ~1 changes cell, for ~230 ns
+in total, split across RNG draws, ``log``/``exp``, cell lookups,
+``moveIn``/``moveOut`` (each adds two 12-vectors), bond energies and a few
+cell-energy evaluations. A function-level profile with these helpers forced
+out of line: ``moveIn`` + ``moveOut`` ~20% (a third of the ``moveIn`` calls
+come from the per-sweep re-mesh), ``getDiagEnergy`` ~12%, ``getEnergy`` ~6%,
+``exp`` + ``log`` ~8%, ``getDensityCapEnergy`` ~3%, ``getCell`` ~3%.
 
-- **Keep output files open.** Each stats dump ``fopen``/``fclose``-es four or
-  five files. ``open``/``close``/``write`` syscalls are ~3% of samples. Keeping
-  the ``FILE*`` open with an ``fflush`` per dump would remove most of that.
+The large remaining levers are run settings, not code (see *Modeling
+decisions*).
 
 Tried and rejected (measured, not worth it):
+
+- **Per-bead cell pointer** (``Bead::cell``, set in ``moveIn``) instead of
+  recomputing the old cell with ``getCell``. Verified correct (0 mismatches in
+  9.1M lookups) and byte-identical, but at most ~+1-2%, within noise. Not
+  worth the extra invariant.
+- **Bead ids stored contiguously per cell** (``contains_ids`` next to
+  ``contains``), so the diagonal pair loop needn't dereference beads: ~4%
+  *slower*. The bead array (~115 KB) stays in cache, so the pointer reads were
+  cheap and the extra bookkeeping was not.
+- **Reset only touched cells in** ``meshBeads`` (a dirty list filled by
+  ``moveIn``, bitwise-equivalent to resetting the whole grid): ~3% *slower*.
+- **Cache the density-cap energy** with the plaid/diagonal caches: neutral.
+- **Profile-guided optimization** (clang ``-fprofile-instr-generate`` /
+  ``-fprofile-instr-use``, trained on a different seed): byte-identical but
+  ~3% *slower*.
 
 - **Keep the energy cache across the grid move's re-mesh.** ``meshBeads``
   invalidates every cell each sweep, which is why only about half of "old"
@@ -393,13 +422,11 @@ Tried and rejected (measured, not worth it):
 
 Larger, unexplored:
 
-- **Move bookkeeping.** The translate/crankshaft bodies (cell lookup per
-  bead, flagging, swap records, ``moveIn``/``moveOut`` and undo on rejection)
-  are now the largest cost. Profile them at line level before changing
-  anything.
-- **Incremental re-mesh.** ``meshBeads`` rebuilds every cell each sweep;
-  moving only beads whose cell index changed would cut it (and keep more
-  energy-cache entries valid), at the cost of more incremental rounding in
+- **Incremental re-mesh.** ``meshBeads`` rebuilds every cell each sweep.
+  Moving only beads whose cell index changed would skip the others, but
+  ~46% of beads do change cell between re-meshes (the grid shifts by up to
+  ``delta/10`` per axis, plus that sweep's moves). So it saves at most about
+  half of the grid move's ~12% share, and it adds incremental rounding to
   ``typenums``/``chi_n``.
 - **getDiagEnergy early exit** (sorting a cell's bead ids to stop at
   ``diag_cutoff``) does nothing for the converged config, whose
@@ -409,7 +436,18 @@ Larger, unexplored:
 Modeling decisions, not optimizations:
 
 - **Grid-move frequency.** The grid move runs every sweep to suppress
-  discretization artifacts. Reducing its frequency changes results.
+  discretization artifacts, at ~12% of move time. Reducing its frequency
+  changes results.
+- **Stats dump frequency.** ``dump_stats_frequency: 10`` costs ~8% of wall
+  time (4270 vs 4650 sweeps/sec with a single dump at the end). Consecutive
+  dumps 10 sweeps apart are strongly correlated, so a larger interval may
+  lose little statistical information, but that should be checked against
+  the observables' autocorrelation time before changing it.
+- **Move-set efficiency.** Sweeps/sec is not the quantity that matters;
+  independent samples per CPU-second is. Translation and crankshaft segments
+  average ~3 beads (``exp_decay = nbeads / decay_length = 2``). Tuning
+  ``decay_length``, step sizes or the move mix could matter more than any
+  remaining code change, but needs a study measuring autocorrelation times.
 
 Not a performance issue, but noticed while verifying the grid-move change:
 ``MCmove_grid`` rejects only when the summed density-cap energy reaches
