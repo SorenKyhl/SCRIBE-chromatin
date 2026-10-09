@@ -98,15 +98,17 @@ def integrated_time_from_acf(rho: np.ndarray, c: float = 5.0, return_window: boo
     return (tau, window) if return_window else tau
 
 
-def batch_means_time(x, n_batches: int | None = None) -> float:
+def batch_means_time(x, n_batches: int = 20) -> float:
     """Integrated time from the variance of block averages, in samples.
 
-    tau ~= b * Var(block means) / Var(x) for block length b >> tau. Default
-    block count: floor(sqrt(n)) per chain.
+    tau ~= b * Var(block means) / Var(x), biased low unless the block length
+    b = n / n_batches is much longer than tau. The default of 20 blocks per
+    chain gives b >= 2.5 tau whenever n >= 50 tau. (sqrt(n) blocks, the
+    usual asymptotic choice, makes blocks shorter than tau for slow modes.)
     """
     chains = _as_chains(x)
     m, n = chains.shape
-    k = n_batches or max(int(np.sqrt(n)), 2)
+    k = n_batches
     b = n // k
     if b < 1:
         raise ValueError("trace too short for batch means")
@@ -139,7 +141,7 @@ def ess(x, c: float = 5.0) -> float:
     return chains.size / integrated_time(chains, c)
 
 
-def multivariate_ess(x, n_components: int | None = 10, n_batches: int | None = None) -> float:
+def multivariate_ess(x, n_components: int | None = 10, n_batches: int = 20) -> float:
     """Multivariate ESS (Vats, Flegal & Jones 2019) of a vector observable.
 
     ``x`` has shape (n, p) for one chain or (m, n, p) for several. The
@@ -150,7 +152,8 @@ def multivariate_ess(x, n_components: int | None = 10, n_batches: int | None = N
         mESS = N * (det(Lambda) / det(Sigma)) ** (1/p),
 
     with Lambda the sample covariance and Sigma the batch-means estimate of
-    the asymptotic covariance. Columns with zero variance are dropped.
+    the asymptotic covariance (``n_batches`` per chain; see
+    :func:`batch_means_time`). Columns with zero variance are dropped.
     """
     x = np.asarray(x, dtype=float)
     if x.ndim == 2:
@@ -164,7 +167,7 @@ def multivariate_ess(x, n_components: int | None = 10, n_batches: int | None = N
         _, _, vt = np.linalg.svd(z.reshape(m * n, -1), full_matrices=False)
         z = z @ vt[:n_components].T
     q = z.shape[-1]
-    k = n_batches or max(int(np.sqrt(n)), 2)
+    k = n_batches
     b = n // k
     if m * (k - 1) <= q:
         raise ValueError(f"{m * k} batches are too few for {q} components")

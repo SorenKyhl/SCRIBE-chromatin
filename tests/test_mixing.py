@@ -48,6 +48,15 @@ def test_batch_means_time_ar1():
     assert mixing.batch_means_time(x) == pytest.approx(tau_ar1(0.9), rel=0.2)
 
 
+def test_batch_means_time_slow_mode():
+    # tau ~ 200 samples; sqrt(n) = 141-sample blocks would be shorter than tau
+    xs = [ar1(0.99, 20000, m=4, seed=seed) for seed in range(9, 14)]
+    good = np.mean([mixing.batch_means_time(x) for x in xs])
+    short = np.mean([mixing.batch_means_time(x, n_batches=141) for x in xs])
+    assert good == pytest.approx(tau_ar1(0.99), rel=0.2)
+    assert short < 0.6 * tau_ar1(0.99)
+
+
 def test_replica_time_ar1():
     # many short replicas: the estimate has m - 1 degrees of freedom
     x = ar1(0.9, 2000, m=200, seed=2)
