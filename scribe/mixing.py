@@ -35,6 +35,9 @@ import numpy as np
 import pandas as pd
 
 ENERGY_COLUMNS = ["bonded", "plaid", "diagonal", "boundary", "total"]
+#: relative standard deviation below which a column counts as constant (the
+#: engine prints 6 decimals, so parsed constants can have std ~1e-15)
+CONSTANT_RTOL = 1e-9
 STRUCTURE_COLUMNS = ["rg2", "ree2", "r2half"]
 
 
@@ -45,11 +48,16 @@ def autocorr_function(x: np.ndarray) -> np.ndarray:
     """Normalized autocorrelation function of a 1-D trace (FFT, biased)."""
     x = np.asarray(x, dtype=float)
     n = len(x)
+    if _is_constant(x):
+        raise ValueError("trace has zero variance")
     f = np.fft.rfft(x - x.mean(), n=2 * n)
     acf = np.fft.irfft(f * np.conjugate(f))[:n]
-    if acf[0] == 0:
-        raise ValueError("trace has zero variance")
     return acf / acf[0]
+
+
+def _is_constant(x: np.ndarray, axis=None) -> np.ndarray:
+    scale = np.maximum(np.abs(np.mean(x, axis=axis)), 1.0)
+    return np.std(x, axis=axis) <= CONSTANT_RTOL * scale
 
 
 def _as_chains(x) -> np.ndarray:
@@ -68,7 +76,8 @@ def integrated_time(x, c: float = 5.0, return_window: bool = False):
     chains' autocorrelation functions are averaged before windowing. The
     window M is the smallest M with M >= c * tau(M) (Sokal 1997). The estimate
     is reliable only when the trace is much longer than tau (n >~ 50 tau);
-    check ``n / tau``.
+    check ``n / tau``. If no window satisfies the criterion, the window is the
+    whole trace and the estimate is a lower bound.
     """
     chains = _as_chains(x)
     rho = np.mean([autocorr_function(ch) for ch in chains], axis=0)
@@ -139,7 +148,7 @@ def multivariate_ess(x, n_components: int | None = 10, n_batches: int | None = N
     m, n, p = x.shape
     flat = x.reshape(m * n, p)
     sd = flat.std(axis=0)
-    keep = sd > 0
+    keep = ~_is_constant(flat, axis=0)
     z = (x[..., keep] - flat[:, keep].mean(axis=0)) / sd[keep]
     if n_components is not None and n_components < z.shape[-1]:
         _, _, vt = np.linalg.svd(z.reshape(m * n, -1), full_matrices=False)
@@ -211,6 +220,8 @@ def observable_times(chains: list[dict[str, np.ndarray]], burn: int = 0,
     condition; ``burn`` samples are dropped from each. Columns that are
     constant in any chain are skipped. One row per column, with the Sokal,
     batch-means and (for >= 2 chains) replica estimates and n/tau.
+    ``converged`` is False when the Sokal window reached the end of the
+    trace (tau is then a lower bound: run longer).
     """
     n = min(len(ch["sweep"]) for ch in chains) - burn
     if n <= 0:
@@ -222,13 +233,14 @@ def observable_times(chains: list[dict[str, np.ndarray]], burn: int = 0,
         ncol = chains[0][group].shape[1]
         for j in range(ncol):
             x = np.array([ch[group][burn:burn + n, j] for ch in chains])
-            if np.any(x.std(axis=1) == 0):
+            if np.any(_is_constant(x, axis=1)):
                 continue
             name = {"energy": ENERGY_COLUMNS, "structure": STRUCTURE_COLUMNS}.get(group)
             col = name[j] if name and j < len(name) else str(j)
             tau, window = integrated_time(x, c, return_window=True)
             rows.append({
                 "group": group, "column": col, "tau": tau, "window": window,
+                "converged": bool(window < n - 1),
                 "tau_batch": batch_means_time(x),
                 "tau_replica": replica_time(x) if len(chains) > 1 else np.nan,
                 "n_over_tau": n / tau,
@@ -259,6 +271,7 @@ def summarize(times: pd.DataFrame, sample_interval: int,
         out["tau_max_maxent"] = float(maxent["tau_sweeps"].max())
     out["tau_max_all"] = float(t["tau_sweeps"].max())
     out["min_n_over_tau"] = float(t["n_over_tau"].min())
+    out["all_converged"] = bool(t["converged"].all())
     if seconds_per_sweep:
         out["seconds_per_sweep"] = seconds_per_sweep
         for k in [k for k in out if k.startswith("tau_")]:

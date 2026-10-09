@@ -77,6 +77,17 @@ def test_multivariate_ess_handles_redundant_columns():
 def test_zero_variance_raises():
     with pytest.raises(ValueError):
         mixing.integrated_time(np.ones(100))
+    # constants parsed from text carry ~1e-15 noise; still constant
+    with pytest.raises(ValueError):
+        mixing.integrated_time(23.84439 + 1e-14 * np.random.default_rng(0).standard_normal(100))
+
+
+def test_short_trace_underestimates():
+    # with n << tau every estimator underestimates and the Sokal window still
+    # "converges": n / tau and agreement between estimators are the checks
+    x = ar1(0.999, 300, seed=0)[0]
+    tau, window = mixing.integrated_time(x, return_window=True)
+    assert tau < tau_ar1(0.999) / 10 and window < len(x) - 1
 
 
 def test_observable_times_and_summary():
@@ -86,7 +97,7 @@ def test_observable_times_and_summary():
         chains.append({
             "sweep": np.arange(1, n + 1) * 10.0,
             "energy": np.stack([ar1(0.5, n, seed=10 + k)[0]] * 5, axis=1),
-            "obs": np.stack([ar1(0.9, n, seed=20 + k)[0], np.ones(n)], axis=1),
+            "obs": np.stack([ar1(0.9, n, seed=20 + k)[0], np.full(n, 23.84439) + 1e-15 * k], axis=1),
             "structure": np.stack([ar1(0.95, n, seed=30 + k)[0]] * 3, axis=1),
         })
     times = mixing.observable_times(chains)
