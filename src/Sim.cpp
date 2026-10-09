@@ -1652,11 +1652,10 @@ void Sim::saveObservables(int sweep) {
         obs_out = fopen(obs_out_filename.c_str(), "a");
         fprintf(obs_out, "%d", sweep);
 
-        for (int i = 0; i < nspecies; i++) {
-            for (int j = i; j < nspecies; j++) {
-                double ij_contacts = grid.get_ij_Contacts(i, j);
-                fprintf(obs_out, "\t%lf", ij_contacts);
-            }
+        std::vector<double> ij_contacts;
+        grid.get_ij_Contacts(nspecies, ij_contacts);
+        for (double c : ij_contacts) {
+            fprintf(obs_out, "\t%lf", c);
         }
 
         fprintf(obs_out, "\n");

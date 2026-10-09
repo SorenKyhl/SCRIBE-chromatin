@@ -272,16 +272,20 @@ double Grid::DmatrixEnergy(const std::vector<Cell *> &flagged_cells,
     return U;
 };
 
-double Grid::get_ij_Contacts(int i, int j) {
-    // calculates average phi_i phi_j
-    double obs = 0;
-    for (Cell *cell : active_cells) {
-        obs +=
-            cell->typenums[i] * cell->typenums[j] * cell->beadvol / cell->vol;
+void Grid::get_ij_Contacts(int n, std::vector<double> &obs) {
+    // calculates average phi_i phi_j for every pair i <= j, in row-major
+    // upper-triangle order. One pass over the cells for all pairs, rather than
+    // one pass per pair; per-pair accumulation order over cells is unchanged.
+    obs.assign(n * (n + 1) / 2, 0.0);
+    for (Cell *cell : active_cells_vec) {
+        int p = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = i; j < n; j++) {
+                obs[p++] += cell->typenums[i] * cell->typenums[j] *
+                            cell->beadvol / cell->vol;
+            }
+        }
     }
-
-    // obs /= active_cells.size();
-    return obs;
 };
 
 double Grid::getContacts() {
