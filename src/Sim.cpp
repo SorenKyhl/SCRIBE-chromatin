@@ -467,6 +467,9 @@ void Sim::readInput() {
     angles_on = config["angles_on"];
     assert(config.contains("k_angle"));
     k_angle = config["k_angle"];
+    // with zero stiffness every angle energy is exactly 0; skip evaluating them
+    if (k_angle == 0)
+        angles_on = false;
 
     // parallel config params
     assert(config.contains("parallel"));
