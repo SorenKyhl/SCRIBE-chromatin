@@ -67,7 +67,9 @@ Optimization log
 ----------------
 
 All changes below are behavior-preserving: on the fixed-seed benchmark the
-trajectory stayed bitwise-identical (overall acceptance 82.2284%). Throughput
+trajectory stayed bitwise-identical (overall acceptance 82.2284%). The last two
+rows change floating-point rounding, so identity is not guaranteed for them;
+see *Rounding-changing optimizations* below for how they were validated. Throughput
 figures are 5000-sweep runs at the default ``-O2`` on the same machine, so they
 are only meaningful relative to each other.
 
@@ -164,11 +166,149 @@ are only meaningful relative to each other.
        per-pair summation order.
      - ~2280 -> ~2470
      - ``c488f8c``
+   * - Plaid energy from an incrementally maintained ``S n``
+     - ``sum_{i<=j} chi_ij n_i n_j`` equals ``n.(S n)/2`` with ``S`` the
+       symmetric matrix from the upper triangle of ``chis`` (diagonal
+       doubled). Each bead carries ``S d`` (``Bead::chi_d``) and each cell keeps
+       ``S n`` (``Cell::chi_n``) up to date in ``moveIn``/``moveOut``, so
+       ``getEnergy`` is a 12-term dot product with one division instead of 78
+       terms with a division each. Rounding-changing. See *How the energy
+       optimizations work*.
+     - ~2500 -> ~3200
+     - ``48cc9b7``
+   * - Diagonal energy from a per-separation weight table
+     - The energy is linear in the per-bin pair counts, so ``getDiagEnergy``
+       sums ``diag_chis[bin(d)] * nbonds(d)`` per pair from a table indexed by
+       genomic separation instead of binning into ``diag_phis`` and dotting.
+       ``diag_phis`` are filled only for the observables
+       (``Cell::updateDiagPhis``, same integer counts as before).
+       Rounding-changing. See *How the energy optimizations work*.
+     - ~3200 -> ~4080
+     - ``fae31e6``
 
-Cumulatively the engine is now about **4x** faster than before this work
-(~610 -> ~2470 sweeps/sec on an M3), with a byte-identical simulation
-trajectory. The changes from ``Cell::contains`` onward give ~1.57x over
-``2abf125`` (~1570 -> ~2470, interleaved runs).
+Cumulatively the engine is now about **6.7x** faster than before this work
+(~610 -> ~4080 sweeps/sec on an M3). The byte-identical changes from
+``Cell::contains`` through the observables pass give ~1.57x over ``2abf125``
+(~1570 -> ~2470, interleaved runs); the two rounding-changing energy changes
+give another ~1.63x (``bb32a69`` measured at ~2500 on 2026-10-09, -> ~4080).
+
+How the energy optimizations work
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Background: where the energy comes from.** Space is divided into grid
+cells. A cell's nonbonded energy depends only on which beads are inside it,
+so an MC move only needs to recompute the energy of the few cells that beads
+moved out of or into, before and after the move. That per-cell calculation
+runs millions of times per run, so it dominates. It has two parts: the
+*plaid* term (interactions between epigenetic bead types) and the *diagonal*
+term (interactions that depend on how far apart two beads are along the
+chain).
+
+**Plaid energy: keep a running "interaction field" per cell.** Each bead has
+a type vector ``d`` (how much of each of the 12 marks it carries; values can
+be fractional). A cell sums these into ``typenums`` = ``n``, its total amount
+of each type. The plaid energy adds up ``chi_ij * n_i * n_j`` over every pair
+of types ``i <= j``: 78 pairs for 12 types, recomputed from scratch every
+time a cell is evaluated.
+
+With two types A and B, that is::
+
+   U = chi_AA n_A^2 + chi_AB n_A n_B + chi_BB n_B^2      (times beadvol/vol)
+
+Regroup it by asking, for each type, "how strongly is one unit of this type
+pulled or pushed by everything currently in the cell?" Call that the cell's
+*field* for that type::
+
+   field_A = 2 chi_AA n_A + chi_AB n_B
+   field_B = chi_AB n_A + 2 chi_BB n_B
+
+Then ``U = (n_A field_A + n_B field_B) / 2``. That is each type's amount times
+the field it feels, halved because every interacting pair gets counted once
+from each side. (In matrix form the field is ``S n``, where ``S`` is ``chis``
+made symmetric with its diagonal doubled.)
+
+The point is that the field is a plain sum over the beads in the cell: each
+bead contributes a fixed vector ``S d`` that never changes. So:
+
+- once at startup, each bead computes its own contribution ``S d``
+  (``Bead::chi_d``);
+- when a bead enters a cell, the cell adds that vector to its field
+  (``Cell::chi_n``), and subtracts it when the bead leaves. This happens in
+  the same loop that already updates ``typenums``, so it costs 12 extra
+  additions;
+- the energy is then just 12 multiply-adds (``n . field``) and one division,
+  instead of 78 multiply-adds that each also divide.
+
+The trade-off: the field is a running total, so it accumulates tiny rounding
+errors as beads come and go. ``typenums`` already works the same way, and
+both are rebuilt from scratch by the grid move's re-mesh every sweep. Even
+with grid moves off (no rebuild for 20000 sweeps), the output was unchanged.
+
+**Diagonal energy: look up each pair's contribution directly.** For every
+pair of beads in a cell (including each bead with itself), the genomic
+separation ``|i - j|`` falls into one of 28 distance bins, and each bin has
+an interaction strength ``diag_chis[bin]``. The old code worked like adding
+up a grocery bill by first counting how many items fall in each price
+category, then multiplying each count by its price:
+
+1. zero a 28-entry count array (``diag_phis``);
+2. for each pair, work out its bin and add 2 to that bin's count (1 for a
+   bead paired with itself);
+3. multiply all 28 counts by their ``diag_chis`` and add them up.
+
+With ~3 beads per cell there are only ~6 pairs, so steps 1 and 3 (28
+entries each) cost more than the pairs themselves. Since the result is just
+"the sum, over pairs, of that pair's strength", the new code builds a table
+once at startup: for every possible separation, the strength times the count
+(``diag_weight_of``). The energy is then just "for each pair, look up its
+separation in the table and add". No bins, no count array.
+
+The per-bin counts are still needed for the ``diag_observables`` output, but
+only when stats are written (every 10 sweeps), not on every energy
+evaluation. ``Cell::updateDiagPhis`` computes them then, from the same
+tables, so the observables are unchanged.
+
+**Why the obvious next step was slower.** By analogy with the plaid field,
+each cell could keep a running diagonal total, updated when a bead enters or
+leaves (add that bead's pairs with the beads already there). It measured ~5%
+*slower*. Cells are small, so recomputing ~6 pairs is already cheap. The
+running total, in contrast, must also be updated on moves that end up
+rejected and undone, and for every bead during the per-sweep re-mesh, which
+adds more work than it saves.
+
+**Why the results don't change even though rounding does.** Both changes
+compute the same quantity with the additions done in a different order.
+Floating-point addition is not exactly associative, so the last few digits
+(~1e-13 relative) can differ. That only matters if it flips an accept/reject
+decision, which requires the random number to land within that tiny margin
+of the acceptance threshold. That is rare enough that no flip showed up in
+any test (next section).
+
+Rounding-changing optimizations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The plaid ``S n`` and diagonal weight-table changes compute the same energies
+in a different floating-point order, so they could in principle flip an
+accept/reject decision whose random number lands within rounding error
+(~1e-13 relative) of the acceptance probability. A rough estimate puts that
+at about once per 1e12 moves, and the checks agree. Against
+``bb32a69``, all of the following were **byte-identical** in every output
+file (energy, observables, diagonal observables, extra, contacts, xyz):
+
+- the benchmark config, seed 12345, 5000 sweeps, and seeds 1-4 at 20000
+  sweeps each;
+- the benchmark config with ``gridmove_on: false`` (20000 sweeps), which
+  never re-meshes and so lets ``Cell::chi_n`` accumulate incremental rounding
+  for the whole run, with ``diagonal_on: false``, and with ``smatrix_on``;
+- the ideal chain (no plaid/diagonal), three contact-pooling modes;
+- the research repo's regression tier 0 (stored-configuration energies, zero
+  difference at printed precision vs. reference) and tier 1 (2000-sweep
+  trajectory, identical to the baseline engine, acceptance 82.4308%).
+
+Per the research tier definitions, tier 2 (ensemble statistics) is only needed
+when tier 1 diverges, so it was not run. If a future config does diverge,
+that is the expected consequence of rounding, not by itself a regression.
+
 
 The scope-timer profiler was also fixed as part of this work: the per-category
 ``Timer`` objects in ``Sim::MC()`` shared one block scope (explicit destructor
@@ -186,33 +326,40 @@ decay_length``; ``n_pivot`` is 10x fewer) looks like:
 =============  ===========
 Category       % of moves
 =============  ===========
-translating    ~61%
-cranking       ~32%
-gridmove       ~5%
+translating    ~52%
+cranking       ~33%
+gridmove       ~12%
 pivoting       ~3%
 =============  ===========
 
 (Before the ``Cell::contains`` change, gridmove was ~14%, not the ~9% this
-table used to show.) The scope timers cover only the moves. The
+table used to show. It fell to ~5% after that change and rose back to ~12%
+with the ``S n`` change, because the per-sweep re-mesh's ``moveIn`` now also
+updates ``chi_n``, while the moves themselves got cheaper.) The scope timers cover only the moves. The
 ``dump_stats_frequency`` output (``saveEnergy``, ``updateContacts``,
 ``saveObservables``) is not timed and is roughly another 10-15% of wall time.
 
 Translation dominates because a translation displaces every bead in its segment
 by the full step, so more beads cross grid-cell boundaries (more flagged cells,
 more energy evaluation) than a crankshaft rotation of the same-length segment,
-whose beads sit close to the rotation axis and barely move. Both are now
-limited by the shared per-cell energy computation
-(``Cell::getEnergy`` + ``Cell::getDiagEnergy``). A sampling profile shows no
-measurable ``malloc``/``free`` left in the hot path. What remains is real
-arithmetic: the plaid double loop accounts for about a third of samples and
-the diagonal pair loop for about a fifth.
+whose beads sit close to the rotation axis and barely move. A sampling
+profile shows no measurable ``malloc``/``free`` left in the hot path. After
+the energy changes, the per-cell energy computation is no longer dominant:
+the move routines' own bookkeeping (``MCmove_translate`` /
+``MCmove_crankshaft`` bodies: cell lookups, flagging, bead updates) is about
+40% of samples, ``Grid::diagEnergy`` (diagonal pair loop, inlined) about 15%,
+``getNonBondedEnergy`` (plaid dot product and density cap, inlined) about 11%,
+``meshBeads`` ~6%, and ``exp``/``log`` ~8%.
 
 Remaining opportunities
 -----------------------
 
-The bitwise-preserving opportunities are largely used up. Anything that
-changes floating-point summation order or rounding cannot be checked by byte
-comparison, so it needs the statistical (ensemble) validation tier.
+The bitwise-preserving opportunities are largely used up, and so are the
+cheap rounding-changing ones in the energy. Rounding-changing work can't be
+proven correct by byte comparison, but in practice it stays byte-identical
+at printed precision (see *Rounding-changing optimizations*), which is the
+first thing to check. The engine is now limited by move bookkeeping rather
+than energy arithmetic.
 
 Bitwise-preserving, small:
 
@@ -235,20 +382,29 @@ Tried and rejected (measured, not worth it):
   ``uniform()`` is in [0, 1)). Exact, but no measurable change.
 - **Resetting only occupied cells in** ``meshBeads``: ~1% at most (see the git
   history of this page).
+- **Incremental diagonal pair sum.** Keeping each cell's diagonal pair sum up
+  to date in ``moveIn``/``moveOut`` (O(k) per bead) instead of recomputing it
+  per energy evaluation (O(k^2)) made the engine ~5% *slower*: with ~3 beads
+  per cell the pair loop is short, and the incremental update also runs on
+  rejected moves and on every bead of the per-sweep re-mesh.
+- **Per-separation bin/count tables alone** (bitwise-identical version of the
+  diagonal change, keeping the ``diag_phis`` dot product): ~+0.5%. The cost
+  was the per-call zeroing and dotting of ``diag_phis``, not the binning.
 
-Need statistical validation:
+Larger, unexplored:
 
-- **``Cell::getEnergy`` division hoisting.** This is now the single largest
-  cost. The plaid inner loop (``ntypes`` x ``ntypes``) does a division per
-  iteration. Precomputing ``chis * vol / beadvol`` per cell, or a symmetric
-  ``phis^T chis phis`` product, changes rounding.
-- **``getDiagEnergy`` early exit.** Sorting a cell's bead indices would let the
-  pairwise loop break once the genomic separation exceeds ``diag_cutoff``,
-  pruning distant pairs. Marginal for sparse cells; helps dense ones.
-- **Incremental / delta energy (large refactor).** Each move still computes
-  the full new energy of every flagged cell. Computing just the energy delta
-  of the moved beads would be a substantial win, but it is a significant
-  rework of the cell-based energy model.
+- **Move bookkeeping.** The translate/crankshaft bodies (cell lookup per
+  bead, flagging, swap records, ``moveIn``/``moveOut`` and undo on rejection)
+  are now the largest cost. Profile them at line level before changing
+  anything.
+- **Incremental re-mesh.** ``meshBeads`` rebuilds every cell each sweep;
+  moving only beads whose cell index changed would cut it (and keep more
+  energy-cache entries valid), at the cost of more incremental rounding in
+  ``typenums``/``chi_n``.
+- **getDiagEnergy early exit** (sorting a cell's bead ids to stop at
+  ``diag_cutoff``) does nothing for the converged config, whose
+  ``diag_cutoff`` equals ``nbeads``. Only worth it for configs with a short
+  cutoff and dense cells.
 
 Modeling decisions, not optimizations:
 

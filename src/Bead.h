@@ -15,6 +15,7 @@ public:
     Eigen::RowVector3d r;  // position
     Eigen::RowVector3d u;  // orientation
     std::vector<double> d; // bead type assignments
+    std::vector<double> chi_d; // S d, see Cell::chi_n (set by Cell::setBeadInteractions)
 
     void print() { std::cout << id << " " << r << std::endl; }
 };

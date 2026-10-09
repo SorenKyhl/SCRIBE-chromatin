@@ -38,11 +38,15 @@ public:
 
 	static int ntypes;  // number of bead types
 	std::vector<double> typenums = std::vector<double>(ntypes); // always up-to-date
-	std::vector<double> phis = std::vector<double>(ntypes); // only up-to-date after energy calculation
+	// S n, where S is the symmetric matrix with S_ij = chi_ij from the upper
+	// triangle and S_ii = 2 chi_ii, so the plaid sum over i <= j of
+	// chi_ij n_i n_j equals n.(S n)/2. Kept up to date like typenums (each
+	// bead carries S d), which makes getEnergy O(ntypes), not O(ntypes^2).
+	std::vector<double> chi_n = std::vector<double>(ntypes);
 
 	static int diag_binsize;
 	static int diag_nbins;
-	std::vector<double> diag_phis = std::vector<double>(diag_nbins);
+	std::vector<double> diag_phis = std::vector<double>(diag_nbins); // only up-to-date after updateDiagPhis
 	static bool diagonal_linear;
 
     static bool double_count_main_diagonal;
@@ -62,6 +66,18 @@ public:
     static bool diagonal_binning;
     static std::vector<int> diagonal_bin_lookup;
 
+	// Per-separation tables, indexed by genomic separation |i - j| in
+	// [0, nbeads): the diagonal bin (-1 if outside [diag_start, diag_cutoff]),
+	// the pair count it adds, and diag_chis[bin] * count (0 if outside).
+	// Built once by setInteractions so the pair loops do no binning arithmetic.
+	static std::vector<int> diag_bin_of;
+	static std::vector<int> diag_nbonds_of;
+	static std::vector<double> diag_weight_of;
+	static void setBeadInteractions(std::vector<Bead> &beads,
+	                                const Eigen::MatrixXd &chis);
+	static void setInteractions(int nbeads, const std::vector<double> &diag_chis,
+	                            bool diagonal_on);
+
 	void print();
 	void reset();
 	void moveIn(Bead* bead);
@@ -70,6 +86,7 @@ public:
 	double getEnergy(const Eigen::MatrixXd &chis);
 	double getConstantEnergy(const double constant_chi);
 	double getDiagEnergy(const std::vector<double> &diag_chis);
+	void updateDiagPhis();
 	double getBoundaryEnergy(const double boundary_chi, const double delta);
 	double getSmatrixEnergy(const Eigen::MatrixXd &Smatrix);
 	double getEmatrixEnergy(const Eigen::MatrixXd &Ematrix);

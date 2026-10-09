@@ -300,6 +300,7 @@ double Grid::getContacts() {
 
 void Grid::getDiagObs(std::vector<double> &diag_obs) {
     for (Cell *cell : active_cells) {
+        cell->updateDiagPhis();
         for (std::size_t i = 0; i < diag_obs.size(); i++) {
             // diag_obs[i] += cell->diag_phis[i] * cell->diag_phis[i] *
             // cell->vol / cell->beadvol;

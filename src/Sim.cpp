@@ -51,6 +51,7 @@ void Sim::xyzToContact() {
     beads.resize(nbeads);
     calculateParameters();
     loadConfiguration(); // load .xyz file specified in config file
+    Cell::setBeadInteractions(beads, chis);
     grid.initialize(beads);
     initializeContactmap();
     saveContacts(0);
@@ -491,6 +492,8 @@ void Sim::readInput() {
     assert(config.contains("conservative_contact_pooling"));
     conservative_contact_pooling = config["conservative_contact_pooling"];
 
+    Cell::setInteractions(nbeads, diag_chis, diagonal_on);
+
     assert(config.contains("seed"));
     int seed = config["seed"];
     rng = std::make_unique<RanMars>(seed);
@@ -648,6 +651,7 @@ void Sim::initializeObjects() {
     }
 
     // grid
+    Cell::setBeadInteractions(beads, chis);
     grid.initialize(beads);
 
     // contactmap
@@ -1643,11 +1647,6 @@ void Sim::saveEnergy(int sweep) {
 }
 
 void Sim::saveObservables(int sweep) {
-    // TODO phis are not updated unless energy function is called
-    // leads to error if dumping observables after a rejected move;
-    // beads are returned to their original state and typenums is updated
-    // but cell.phis is not
-    double U = grid.energy(grid.active_cells_vec, chis); // to update phis in cells
     if (plaid_on) {
         obs_out = fopen(obs_out_filename.c_str(), "a");
         fprintf(obs_out, "%d", sweep);
@@ -1677,8 +1676,6 @@ void Sim::saveObservables(int sweep) {
     // if dmatrix_on and (smatrix_on or ematrix_on), diagonal_on will be set to
     // False for computational efficiency
     {
-        double Udiag = grid.diagEnergy(
-            grid.active_cells_vec, diag_chis); // to update phis_diag? jan 28-2022
         diag_obs_out = fopen(diag_obs_out_filename.c_str(), "a");
         fprintf(diag_obs_out, "%d", sweep);
 
@@ -1701,8 +1698,7 @@ void Sim::saveObservables(int sweep) {
         int i = 0;
         for (Cell *cell : grid.active_cells) {
             i++;
-            // fprintf(density_out, " %lf", cell->phis[0]);
-            avg_density += cell->phis[0];
+            avg_density += cell->typenums[0] * cell->beadvol / cell->vol;
         }
         avg_density /= i;
         fprintf(density_out, " %lf\n", avg_density);
