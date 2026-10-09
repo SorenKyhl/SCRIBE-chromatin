@@ -11,7 +11,11 @@
 class Cell {
 public:
 	Eigen::RowVector3d r; // corner of cell RELATIVE TO ORIGIN... the grid origin diffuses
-	std::unordered_set<Bead*> contains; // beads associated inside this gridpoint
+	// Beads currently inside this cell. A flat vector (not a hash set): cells
+	// hold few beads (bounded by the density cap), so a contiguous scan for
+	// moveOut is faster than hashing, and clear()/push_back avoid the per-node
+	// malloc/free churn a hash set incurs on every re-mesh and cell crossing.
+	std::vector<Bead*> contains;
 	double vol;		                // volume of cell
 	static double beadvol; // volume of a bead in the cell.
 

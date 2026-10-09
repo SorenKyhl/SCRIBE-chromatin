@@ -41,7 +41,7 @@ void Cell::reset() {
 void Cell::moveIn(Bead *bead) {
     // updates local number of each type of bead, but does not recalculate phis
     // TODO update populations of distance ids
-    contains.insert(bead);
+    contains.push_back(bead);
     for (int i = 0; i < ntypes; i++) {
         typenums[i] += bead->d[i];
     }
@@ -50,7 +50,14 @@ void Cell::moveIn(Bead *bead) {
 void Cell::moveOut(Bead *bead) {
     // updates local number of each type of bead, but does not recalculate phis
     // TODO update populations of distance ids
-    contains.erase(bead);
+    // swap-and-pop: O(k) find, O(1) removal; order is irrelevant (this is a set)
+    for (std::size_t i = 0; i < contains.size(); i++) {
+        if (contains[i] == bead) {
+            contains[i] = contains.back();
+            contains.pop_back();
+            break;
+        }
+    }
     for (int i = 0; i < ntypes; i++) {
         typenums[i] -= bead->d[i];
     }
