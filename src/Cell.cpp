@@ -24,6 +24,27 @@ int Cell::diag_start;
 bool Cell::diagonal_binning;
 std::vector<int> Cell::diagonal_bin_lookup;
 
+void Cell::setBeadInteractions(std::vector<Bead> &beads,
+                               const Eigen::MatrixXd &chis) {
+    // must run after bead types are loaded and before beads enter cells;
+    // moveIn/moveOut read chi_d[0, ntypes)
+    bool have_chis = chis.rows() == ntypes && chis.cols() == ntypes;
+    for (Bead &bead : beads) {
+        bead.chi_d.assign(ntypes, 0.0);
+        if (!have_chis || (int)bead.d.size() != ntypes) {
+            continue;
+        }
+        for (int i = 0; i < ntypes; i++) {
+            double s = 0;
+            for (int j = 0; j < ntypes; j++) {
+                double chi = (i <= j) ? chis(i, j) : chis(j, i);
+                s += (i == j ? 2 * chi : chi) * bead.d[j];
+            }
+            bead.chi_d[i] = s;
+        }
+    }
+}
+
 void Cell::print() {
     std::cout << r << "     N: " << contains.size() << std::endl;
     for (Bead *bead : contains) {
@@ -36,21 +57,22 @@ void Cell::reset() {
     contains.clear();
     invalidateEnergy();
     std::fill(typenums.begin(), typenums.end(), 0); // DO NOT USE .clear()
-    std::fill(phis.begin(), phis.end(), 0); // ... it doesn't re-assign to 0's
+    std::fill(chi_n.begin(), chi_n.end(), 0);
 };
 
 void Cell::moveIn(Bead *bead) {
-    // updates local number of each type of bead, but does not recalculate phis
+    // updates local number of each type of bead
     // TODO update populations of distance ids
     contains.push_back(bead);
     invalidateEnergy();
     for (int i = 0; i < ntypes; i++) {
         typenums[i] += bead->d[i];
+        chi_n[i] += bead->chi_d[i];
     }
 };
 
 void Cell::moveOut(Bead *bead) {
-    // updates local number of each type of bead, but does not recalculate phis
+    // updates local number of each type of bead
     // TODO update populations of distance ids
     invalidateEnergy();
     // swap-and-pop: O(k) find, O(1) removal; order is irrelevant (this is a set)
@@ -63,6 +85,7 @@ void Cell::moveOut(Bead *bead) {
     }
     for (int i = 0; i < ntypes; i++) {
         typenums[i] -= bead->d[i];
+        chi_n[i] -= bead->chi_d[i];
     }
 };
 
@@ -87,21 +110,18 @@ double Cell::getDensityCapEnergy() {
 };
 
 double Cell::getEnergy(const Eigen::MatrixXd &chis) {
-    // phis are already up to date for a valid cache: they were computed from
-    // the same (unchanged) typenums when the cache was filled
+    // U = sum_{i<=j} chi_ij phi_i phi_j vol/beadvol with phi = n beadvol/vol,
+    // i.e. beadvol/vol * sum_{i<=j} chi_ij n_i n_j = beadvol/vol * n.(S n)/2,
+    // with S n maintained incrementally in chi_n (from the same chis, see
+    // setBeadInteractions).
     if (energy_valid) {
         return energy_cache;
     }
-    for (int i = 0; i < ntypes; i++) {
-        phis[i] = typenums[i] * beadvol / vol;
-    }
-
     double U = 0;
     for (int i = 0; i < ntypes; i++) {
-        for (int j = i; j < ntypes; j++) {
-            U += chis(i, j) * phis[i] * phis[j] * vol / beadvol;
-        }
+        U += typenums[i] * chi_n[i];
     }
+    U *= 0.5 * beadvol / vol;
     energy_cache = U;
     energy_valid = true;
     return U;

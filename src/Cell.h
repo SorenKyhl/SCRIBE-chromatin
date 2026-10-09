@@ -38,7 +38,11 @@ public:
 
 	static int ntypes;  // number of bead types
 	std::vector<double> typenums = std::vector<double>(ntypes); // always up-to-date
-	std::vector<double> phis = std::vector<double>(ntypes); // only up-to-date after energy calculation
+	// S n, where S is the symmetric matrix with S_ij = chi_ij from the upper
+	// triangle and S_ii = 2 chi_ii, so the plaid sum over i <= j of
+	// chi_ij n_i n_j equals n.(S n)/2. Kept up to date like typenums (each
+	// bead carries S d), which makes getEnergy O(ntypes), not O(ntypes^2).
+	std::vector<double> chi_n = std::vector<double>(ntypes);
 
 	static int diag_binsize;
 	static int diag_nbins;
@@ -61,6 +65,9 @@ public:
 	static int diag_start;
     static bool diagonal_binning;
     static std::vector<int> diagonal_bin_lookup;
+
+	static void setBeadInteractions(std::vector<Bead> &beads,
+	                                const Eigen::MatrixXd &chis);
 
 	void print();
 	void reset();
