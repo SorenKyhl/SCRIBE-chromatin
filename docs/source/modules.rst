@@ -57,6 +57,14 @@ scribe.analysis
    :undoc-members:
    :show-inheritance:
 
+scribe.mixing
+-------------
+
+.. automodule:: scribe.mixing
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 scribe.hic
 ----------
 

@@ -371,6 +371,22 @@ void Sim::readInput() {
     assert(config.contains("rotate_on"));
     rotate_on = config["rotate_on"];
 
+    // Optional move-set tuning parameters. Absent keys keep the historical
+    // defaults, so existing configs reproduce their trajectories exactly.
+    // Segment scales default to nbeads/decay_length in integer division.
+    exp_decay_trans = config.value("exp_decay_trans", double(nbeads / decay_length));
+    exp_decay_crank = config.value("exp_decay_crank", double(nbeads / decay_length));
+    exp_decay_pivot = config.value("exp_decay_pivot", double(nbeads / decay_length));
+    step_disp_percentage = config.value("step_disp_percentage", step_disp_percentage);
+    step_trans_percentage = config.value("step_trans_percentage", step_trans_percentage);
+    step_crank = config.value("step_crank", step_crank);
+    step_pivot = config.value("step_pivot", step_pivot);
+    n_disp_cfg = config.value("n_disp", -1);
+    n_trans_cfg = config.value("n_trans", -1);
+    n_crank_cfg = config.value("n_crank", -1);
+    n_pivot_cfg = config.value("n_pivot", -1);
+    dump_mixing_stats = config.value("dump_mixing_stats", false);
+
     // energy/chi params
     assert(config.contains("boundary_chi"));
     boundary_chi = config["boundary_chi"];
@@ -557,6 +573,11 @@ void Sim::makeOutputFiles() {
         FILE* f = fopen(fn, "w");
         if (f) fclose(f);
     }
+    if (dump_mixing_stats) {
+        structure_out_filename = "./" + data_out_filename + "/structure.traj";
+        FILE *f = fopen(structure_out_filename.c_str(), "w");
+        if (f) fclose(f);
+    }
 
     std::cout << "created successfully" << std::endl;
 
@@ -733,10 +754,17 @@ void Sim::calculateParameters() {
     // grid.sphere_center = {grid.boundary_radius*grid.delta,
     // grid.boundary_radius*grid.delta, grid.boundary_radius*grid.delta};
 
-    exp_decay = nbeads / decay_length; // size of exponential falloff for MCmove
-                                       // second bead choice
-    exp_decay_crank = nbeads / decay_length;
-    exp_decay_pivot = nbeads / decay_length;
+    // A zero pivot scale makes the pivot segment sampler loop forever
+    // (length must be >= 1); fail loudly instead.
+    if (pivot_on && !(exp_decay_pivot > 0)) {
+        throw std::runtime_error(
+            "pivot segment scale exp_decay_pivot must be > 0 (default "
+            "nbeads/decay_length in integer division; set decay_length <= "
+            "nbeads or exp_decay_pivot explicitly)");
+    }
+    if (exp_decay_trans < 0 || exp_decay_crank < 0) {
+        throw std::runtime_error("segment scales exp_decay_* must be >= 0");
+    }
 
     if (bond_type == "gaussian" && rotate_on) {
         throw std::runtime_error(
@@ -748,12 +776,22 @@ void Sim::calculateParameters() {
     orientation_active = (bond_type == "DSS");
 
     // number of Monte-Carlo proposal steps for each type
-    n_disp = displacement_on ? nbeads : 0;
-    n_trans = translation_on ? decay_length : 0;
-    n_crank = crankshaft_on ? decay_length : 0;
-    n_pivot = pivot_on ? decay_length / 10 : 0;
+    n_disp = displacement_on ? (n_disp_cfg >= 0 ? n_disp_cfg : nbeads) : 0;
+    n_trans = translation_on ? (n_trans_cfg >= 0 ? n_trans_cfg : decay_length) : 0;
+    n_crank = crankshaft_on ? (n_crank_cfg >= 0 ? n_crank_cfg : decay_length) : 0;
+    n_pivot = pivot_on ? (n_pivot_cfg >= 0 ? n_pivot_cfg : decay_length / 10) : 0;
     n_rot = rotate_on ? nbeads : 0;
     nSteps = n_trans + n_crank + n_pivot + n_rot;
+
+    std::cout << "moves per sweep: trans " << n_trans << ", crank " << n_crank
+              << ", pivot " << n_pivot << ", disp " << n_disp << ", rot "
+              << n_rot << std::endl;
+    std::cout << "segment scales (beads): trans " << exp_decay_trans
+              << ", crank " << exp_decay_crank << ", pivot " << exp_decay_pivot
+              << std::endl;
+    std::cout << "step sizes: trans " << step_trans << " nm, disp " << step_disp
+              << " nm, crank " << step_crank << " rad, pivot " << step_pivot
+              << " rad" << std::endl;
 }
 
 void Sim::loadConfiguration() {
@@ -1032,6 +1070,23 @@ double Sim::randomExp(double mu, double decay) {
     }
 }
 
+// adds the wall time of its scope to a MoveStats entry, when enabled
+struct StatsClock {
+    Sim::MoveStats &stats;
+    bool on;
+    std::chrono::steady_clock::time_point t0;
+    StatsClock(Sim::MoveStats &stats, bool on) : stats(stats), on(on) {
+        if (on)
+            t0 = std::chrono::steady_clock::now();
+    }
+    ~StatsClock() {
+        if (on)
+            stats.seconds += std::chrono::duration<double>(
+                                 std::chrono::steady_clock::now() - t0)
+                                 .count();
+    }
+};
+
 void Sim::MC() {
     std::cout << "Beginning Simulation" << std::endl;
 
@@ -1042,36 +1097,43 @@ void Sim::MC() {
         // Each move category is timed in its own block scope so the Timer
         // destructor fires at the end of that category (not the end of the
         // sweep), giving true per-category profiling when profiling_on is set.
+        // StatsClock does the same for dump_mixing_stats.
         {
             Timer t_pivot("pivoting", profiling_on);
+            StatsClock c(stats_pivot, dump_mixing_stats);
             for (int j = 0; j < n_pivot; j++) {
                 MCmove_pivot(sweep);
             }
         }
         {
             Timer t_crankshaft("cranking", profiling_on);
+            StatsClock c(stats_crank, dump_mixing_stats);
             for (int j = 0; j < n_crank; j++) {
                 MCmove_crankshaft();
             }
         }
         {
             Timer t_translation("translating", profiling_on);
+            StatsClock c(stats_trans, dump_mixing_stats);
             for (int j = 0; j < n_trans; j++) {
                 MCmove_translate();
             }
         }
         if (gridmove_on) {
             Timer t_grid("gridmove", profiling_on);
+            StatsClock c(stats_grid, dump_mixing_stats);
             MCmove_grid();
         }
         {
             Timer t_displace("displacing", profiling_on);
+            StatsClock c(stats_disp, dump_mixing_stats);
             for (int j = 0; j < n_disp; j++) {
                 MCmove_displace();
             }
         }
         {
             Timer t_rotation("Rotating", profiling_on);
+            StatsClock c(stats_rot, dump_mixing_stats);
             for (int j = 0; j < n_rot; j++) {
                 MCmove_rotate();
             }
@@ -1088,10 +1150,14 @@ void Sim::MC() {
             saveEnergy(sweep);
             updateContacts();
             saveObservables(sweep);
+            if (dump_mixing_stats)
+                saveStructure(sweep);
         }
     }
 
     checkConsistency();
+    if (dump_mixing_stats)
+        saveMoveStats();
     closeStatsFiles();
     std::cout << "overall acceptance rate: "
               << (float)acc / (nSweeps * nSteps) * 100.0 << "%" << std::endl;
@@ -1124,6 +1190,7 @@ void Sim::checkConsistency() { assert(grid.checkCellConsistency(nbeads)); }
 
 void Sim::MCmove_displace() {
     Timer t_displacemove("Displacement move", profiling_on);
+    stats_disp.attempts += 1;
     // pick random particle
     int o = floor(beads.size() * rng->uniform());
 
@@ -1166,6 +1233,9 @@ void Sim::MCmove_displace() {
         acc += 1;
         acc_disp += 1;
         analytics.nbeads_moved += 1;
+        stats_disp.accepts += 1;
+        stats_disp.beads_moved += 1;
+        stats_disp.sq_disp += step_disp * step_disp;
     } else {
         // move rejected
         beads[o].r -= displacement;
@@ -1178,12 +1248,16 @@ void Sim::MCmove_translate() {
     // Timer t_trans("Translate", print_trans);
     // Timer t_setup("setup", print_trans);
 
+    stats_trans.attempts += 1;
+
     // select last bead from two-sided exponential distribution around first
     int first = floor(beads.size() * rng->uniform());
     int last = -1;
     while (last < 0 || last >= nbeads) {
         last = std::round(
-            randomExp(first, exp_decay)); // does this obey detailed balance?
+            randomExp(first, exp_decay_trans)); // detailed balance holds: the segment
+            // choice does not depend on the configuration, so the reverse move
+            // (same segment, opposite displacement) is equally likely
     }
 
     if (last < first) {
@@ -1250,6 +1324,9 @@ void Sim::MCmove_translate() {
         acc += 1;
         acc_trans += 1;
         analytics.nbeads_moved += (last - first);
+        stats_trans.accepts += 1;
+        stats_trans.beads_moved += last - first + 1;
+        stats_trans.sq_disp += (last - first + 1) * step_trans * step_trans;
     } else {
         // move rejected
         for (int i = first; i <= last; i++) {
@@ -1270,6 +1347,8 @@ void Sim::MCmove_crankshaft() {
     // index of first bead through index of last bead represent all beads that
     // MOVE in the crankshaft axis of crankshaft motion is between beads
     // (first-1) and (last+1), because those two do not move.
+
+    stats_crank.attempts += 1;
 
     // select a first bead at random (cannot be first or last bead)
     int first = -1;
@@ -1367,6 +1446,12 @@ void Sim::MCmove_crankshaft() {
             acc += 1;
             acc_crank += 1;
             analytics.nbeads_moved += (last - first);
+            stats_crank.accepts += 1;
+            stats_crank.beads_moved += last - first + 1;
+            if (dump_mixing_stats)
+                for (int i = first; i <= last; i++)
+                    stats_crank.sq_disp +=
+                        (beads[i].r - old_positions[i - first]).squaredNorm();
         } else {
             rejected = true;
         }
@@ -1391,6 +1476,8 @@ void Sim::MCmove_crankshaft() {
 }
 
 void Sim::MCmove_rotate() {
+    stats_rot.attempts += 1;
+
     // pick random particle
     int o = floor(beads.size() * rng->uniform());
 
@@ -1417,6 +1504,7 @@ void Sim::MCmove_rotate() {
         // std::cout << "Accepted"<< std::endl;
         acc += 1;
         acc_rot += 1;
+        stats_rot.accepts += 1;
     } else {
         // std::cout << "Rejected" << std::endl;
         beads[o].u = u_old;
@@ -1430,6 +1518,8 @@ void Sim::MCmove_pivot(int sweep) {
     // depending on which end the pivot is executed, this is either [0, pivot-1]
     // or [pivot+1, nbeads-1]
     // The only bonds affected are pivot-1 OR pivot;
+
+    stats_pivot.attempts += 1;
 
     // chose one end of the polymer and a pivot bead
     int end = (nbeads - 1) *
@@ -1528,6 +1618,12 @@ void Sim::MCmove_pivot(int sweep) {
             acc += 1;
             acc_pivot += 1;
             analytics.nbeads_moved += (last - first);
+            stats_pivot.accepts += 1;
+            stats_pivot.beads_moved += last - first + 1;
+            if (dump_mixing_stats)
+                for (int i = first; i <= last; i++)
+                    stats_pivot.sq_disp +=
+                        (beads[i].r - old_positions[i - first]).squaredNorm();
         } else {
             rejected = true;
         }
@@ -1582,9 +1678,11 @@ void Sim::MCmove_grid() {
         U = grid.densityCapEnergy(grid.active_cells_vec);
 
         // don't accept if move violates density maximum
+        stats_grid.attempts += 1;
         if (U < 9999999999) {
             // std::cout << "passed grid move" << std::endl;
             flag = false;
+            stats_grid.accepts += 1;
             // grid.setActiveCells();
         } else {
             // std::cout << "failed grid move" << std::endl;
@@ -1629,12 +1727,55 @@ FILE *Sim::openStats(FILE *&f, const std::string &filename) {
 
 void Sim::closeStatsFiles() {
     for (FILE **f : {&energy_out, &obs_out, &diag_obs_out, &constant_obs_out,
-                     &density_out, &extra_out}) {
+                     &density_out, &extra_out, &structure_out}) {
         if (*f) {
             fclose(*f);
             *f = nullptr;
         }
     }
+}
+
+// squared radius of gyration, squared end-to-end distance, and the mean
+// squared distance between beads nbeads/2 apart (nm^2): slow structural modes
+// for measuring autocorrelation times
+void Sim::saveStructure(int sweep) {
+    Eigen::RowVector3d com = Eigen::RowVector3d::Zero();
+    for (const Bead &b : beads)
+        com += b.r;
+    com /= nbeads;
+    double rg2 = 0;
+    for (const Bead &b : beads)
+        rg2 += (b.r - com).squaredNorm();
+    rg2 /= nbeads;
+    double ree2 = (beads[nbeads - 1].r - beads[0].r).squaredNorm();
+    int half = nbeads / 2;
+    double r2half = 0;
+    for (int i = 0; i + half < nbeads; i++)
+        r2half += (beads[i + half].r - beads[i].r).squaredNorm();
+    r2half /= (nbeads - half);
+
+    openStats(structure_out, structure_out_filename);
+    fprintf(structure_out, "%d\t%.6f\t%.6f\t%.6f\n", sweep, rg2, ree2, r2half);
+    fflush(structure_out);
+}
+
+void Sim::saveMoveStats() {
+    FILE *f = fopen(("./" + data_out_filename + "/move_stats.txt").c_str(), "w");
+    if (!f)
+        return;
+    fprintf(f, "move\tper_sweep\tattempts\taccepts\tbeads_moved\tsq_disp_nm2\tseconds\n");
+    const std::pair<const char *, std::pair<const MoveStats *, int>> rows[] = {
+        {"trans", {&stats_trans, n_trans}}, {"crank", {&stats_crank, n_crank}},
+        {"pivot", {&stats_pivot, n_pivot}}, {"disp", {&stats_disp, n_disp}},
+        {"rot", {&stats_rot, n_rot}},       {"grid", {&stats_grid, gridmove_on ? 1 : 0}},
+    };
+    for (const auto &row : rows) {
+        const MoveStats &m = *row.second.first;
+        fprintf(f, "%s\t%d\t%lld\t%lld\t%lld\t%.6e\t%.6f\n", row.first,
+                row.second.second, m.attempts, m.accepts, m.beads_moved,
+                m.sq_disp, m.seconds);
+    }
+    fclose(f);
 }
 
 void Sim::saveEnergy(int sweep) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <iostream>
 #include <vector>
@@ -81,15 +82,18 @@ public:
 
 	// MC variables
 	int decay_length;
-	int exp_decay;// = nbeads/decay_length;             // size of exponential falloff for MCmove second bead choice
-	int exp_decay_crank;// = nbeads/decay_length;
-	int exp_decay_pivot;// = nbeads/decay_length;
-	double step_disp_percentage = 0.30; // step disp is this percent of bond length
-	double step_trans_percentage = 0.30; // step trans is this percent of bond length
+	// Mean segment length (beads) of the exponential segment-size
+	// distributions. Default nbeads/decay_length in *integer* division (the
+	// historical behaviour); each can be overridden from config.
+	double exp_decay_trans;
+	double exp_decay_crank;
+	double exp_decay_pivot;
+	double step_disp_percentage = 0.30; // step disp is this fraction of bond length
+	double step_trans_percentage = 0.30; // step trans is this fraction of bond length
 	double step_disp; // nm
 	double step_trans; // nm
-	double step_crank = M_PI/6; // radians 
-	double step_pivot = M_PI/6; // radians
+	double step_crank = M_PI/6; // radians, full width of the uniform angle interval
+	double step_pivot = M_PI/6; // radians, full width of the uniform angle interval
 	double step_rot = M_PI/12; // radians
 	double step_grid; // based off fraction of delta, see initialize
 
@@ -100,6 +104,11 @@ public:
 	int n_crank;
 	int n_pivot;
 	int n_rot;
+	// config overrides for the move counts per sweep; -1 = default
+	int n_disp_cfg = -1;
+	int n_trans_cfg = -1;
+	int n_crank_cfg = -1;
+	int n_pivot_cfg = -1;
 
 	int acc_disp = 0;
 	int acc_trans = 0;
@@ -108,6 +117,26 @@ public:
 	int acc_rot = 0;
 
 	int nSteps;// = n_trans + n_crank + n_pivot + n_rot
+
+	// Optional per-move-type statistics for tuning the move set
+	// (dump_mixing_stats): attempts, acceptances, beads moved and summed
+	// squared bead displacement of accepted moves, and time spent. Written to
+	// move_stats.txt at the end of the run, and Rg^2 / end-to-end^2 to
+	// structure.traj at every stats dump. Pure bookkeeping: the trajectory is
+	// unchanged.
+	struct MoveStats {
+		long long attempts = 0;
+		long long accepts = 0;
+		long long beads_moved = 0;
+		double sq_disp = 0; // sum over accepted moves of sum_i |dr_i|^2, nm^2
+		double seconds = 0;
+	};
+	bool dump_mixing_stats = false;
+	MoveStats stats_disp, stats_trans, stats_crank, stats_pivot, stats_rot, stats_grid;
+	FILE *structure_out = nullptr;
+	std::string structure_out_filename;
+	void saveStructure(int sweep);
+	void saveMoveStats();
 	int nSweeps;
 	int dump_frequency; // dump every x sweeps
 	int dump_stats_frequency;

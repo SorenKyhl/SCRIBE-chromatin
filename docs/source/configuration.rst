@@ -323,7 +323,19 @@ Move Parameters
      - Description
    * - ``decay_length``
      - int
-     - Characteristic decay length for selecting move partners. Controls the typical size of collective moves. Default: nbeads/2.
+     - Sets both the number of moves per sweep and their segment size. Translation and crankshaft run ``decay_length`` moves per sweep, pivot ``decay_length / 10``. Segment lengths are drawn from an exponential distribution with scale ``nbeads / decay_length`` beads (integer division), e.g. 2 beads for 1024 beads and ``decay_length = 500``. ``decay_length > nbeads`` gives scale 0, which is an error when pivots are on. The optional keys below override each part separately.
+   * - ``n_trans``, ``n_crank``, ``n_pivot``, ``n_disp``
+     - int
+     - Optional. Moves of each type per sweep. Defaults: ``decay_length``, ``decay_length``, ``decay_length / 10``, ``nbeads``.
+   * - ``exp_decay_trans``, ``exp_decay_crank``, ``exp_decay_pivot``
+     - float
+     - Optional. Scale (beads) of the exponential segment-length distribution of each collective move. For pivots it is the distance of the pivot bead from the chain end. Default ``nbeads / decay_length`` (integer division).
+   * - ``step_trans_percentage``, ``step_disp_percentage``
+     - float
+     - Optional. Translation / displacement step length as a fraction of ``bond_length``. Default 0.3.
+   * - ``step_crank``, ``step_pivot``
+     - float
+     - Optional. Full width (radians) of the uniform rotation-angle interval, i.e. angles lie in ``[-step/2, step/2]``. Default pi/6.
 
 Density Control
 ---------------
@@ -379,6 +391,9 @@ Output Parameters
    * - ``print_trans``
      - bool
      - Print detailed translation move information (for debugging).
+   * - ``dump_mixing_stats``
+     - bool
+     - Optional, default false. Write ``structure.traj`` (sweep, Rg², end-to-end², mean squared distance at separation nbeads/2, in nm²) at every stats dump, and ``move_stats.txt`` at the end: per move type, attempts, acceptances, beads moved, summed squared displacement of accepted moves, and time spent. Used with :mod:`scribe.mixing` to tune the move set. Does not change the trajectory.
 
 Contact Map Parameters
 ----------------------
