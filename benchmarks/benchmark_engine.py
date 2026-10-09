@@ -14,6 +14,14 @@ Usage:
     --repeat K    run the benchmark K times (default 3), reporting each
     --profile     enable the engine's per-category scope timers and print an
                   aggregated breakdown instead of a throughput number
+    --keep DIR    copy the first run's output directory (energy/observable
+                  traces, contacts, final xyz) to DIR, so two builds can be
+                  byte-compared with `diff -r` -- a much stronger check than
+                  the acceptance rate alone
+
+The engine sources are #included into src/pybind_Sim.cpp, so setuptools does
+not notice edits to them: rebuild with `python setup.py build_ext --inplace
+--force` before benchmarking a change.
 
 See docs/source/performance.rst for the optimization log this harness backs.
 """
@@ -44,7 +52,8 @@ def _make_sim(sweeps: int, profile: bool, root: Path) -> ScribeSim:
     return ScribeSim(root=str(root), config=config, seqs=seqs, randomize_seed=False)
 
 
-def run_throughput(sweeps: int, repeat: int, workdir: Path) -> None:
+def run_throughput(sweeps: int, repeat: int, workdir: Path,
+                   keep: Path | None = None) -> None:
     for i in range(repeat):
         root = workdir / f"run{i}"
         sim = _make_sim(sweeps, profile=False, root=root)
@@ -52,6 +61,10 @@ def run_throughput(sweeps: int, repeat: int, workdir: Path) -> None:
         sim.run("out")
         elapsed = time.perf_counter() - t0
         accept = _grep(root / "out" / "log.log", r"overall acceptance rate: (\S+)")
+        if keep is not None and i == 0:
+            if keep.exists():
+                shutil.rmtree(keep)
+            shutil.copytree(root / "out", keep)
         print(f"[{i + 1}/{repeat}] {sweeps} sweeps in {elapsed:6.3f} s"
               f"  =>  {sweeps / elapsed:7.1f} sweeps/sec"
               f"   (acceptance {accept})")
@@ -90,6 +103,7 @@ def main() -> None:
     p.add_argument("--sweeps", type=int, default=5000)
     p.add_argument("--repeat", type=int, default=3)
     p.add_argument("--profile", action="store_true")
+    p.add_argument("--keep", type=Path, default=None)
     args = p.parse_args()
 
     with tempfile.TemporaryDirectory(prefix="scribe_bench_") as tmp:
@@ -97,7 +111,7 @@ def main() -> None:
         if args.profile:
             run_profile(args.sweeps, workdir)
         else:
-            run_throughput(args.sweeps, args.repeat, workdir)
+            run_throughput(args.sweeps, args.repeat, workdir, args.keep)
 
 
 if __name__ == "__main__":

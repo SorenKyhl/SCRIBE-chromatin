@@ -17,11 +17,27 @@ acceptance rate and bead-move counts -- only sweeps/sec should move.
 
 .. code-block:: bash
 
+   # The engine sources are #included into src/pybind_Sim.cpp, so setuptools
+   # does not see edits to them. Force a rebuild before every measurement.
+   python setup.py build_ext --inplace --force
+
    # Throughput (sweeps/sec), 3 repeats
    python benchmarks/benchmark_engine.py --sweeps 5000 --repeat 3
 
    # Per-category time breakdown (enables the engine's scope timers)
    python benchmarks/benchmark_engine.py --sweeps 400 --profile
+
+Matching acceptance rates is a weak check. To show that a change is
+behavior-preserving, keep the outputs of a baseline build and of the changed
+build and byte-compare them. ``log.log`` contains wall-clock times, so exclude
+it:
+
+.. code-block:: bash
+
+   python benchmarks/benchmark_engine.py --sweeps 3000 --repeat 1 --keep /tmp/before
+   # ... apply the change, rebuild with --force ...
+   python benchmarks/benchmark_engine.py --sweeps 3000 --repeat 1 --keep /tmp/after
+   diff -r -x log.log /tmp/before /tmp/after   # no output == identical
 
 The ``--profile`` mode reports true per-move-category times (translation,
 crankshaft, pivot, grid move, ...). For a function-level view, attach a
@@ -54,6 +70,19 @@ All changes below are behavior-preserving: on the fixed-seed benchmark the
 trajectory stayed bitwise-identical (overall acceptance 82.2284%). Throughput
 figures are 5000-sweep runs at the default ``-O2`` on the same machine, so they
 are only meaningful relative to each other.
+
+.. note::
+   **Re-verified 2026-10-08 (Apple M3, -O2).** The first four rows were
+   recorded in July, and some of their figures did not reproduce. The
+   pre-optimization engine (``d4421f7``) runs at **~610** sweeps/sec, not
+   ~842. The engine after ``b1d7e8a`` runs at **~1570**, not ~1650. That makes
+   the July work a ~2.6x speedup, not ~1.9x. The bitwise claim does hold. With
+   a byte comparison of every output file (energy, observables, diagonal
+   observables, contacts, final xyz) at 3000 sweeps, ``d4421f7`` and
+   ``2abf125`` are identical. The no-gain-from-``-O3 -march=native`` finding
+   also still holds, even now that the hot path is compute-bound. The rows
+   from ``Cell::contains`` onward were measured in the same session (3000-sweep
+   runs), each with the byte-comparison check.
 
 .. list-table::
    :header-rows: 1
@@ -98,9 +127,48 @@ are only meaningful relative to each other.
        plain flag.
      - ~1500 -> ~1650
      - ``b1d7e8a``
+   * - ``Cell::contains`` as a flat vector
+     - Each cell's ``std::unordered_set<Bead*>`` node-allocated on every insert
+       and freed on every erase or clear: in ``meshBeads`` every sweep, and in
+       every local move's ``moveIn``/``moveOut``. Use a ``std::vector`` with
+       swap-and-pop erase (cells hold ~3 beads). This was previously thought
+       to need statistical validation because it changes iteration order. It
+       doesn't: every consumer of ``contains`` on the default path is
+       order-independent (integer pair counts per diagonal bin, ``typenums``
+       for plaid, integer contact counts), and the outputs are byte-identical.
+     - ~1570 -> ~1870
+     - ``d2db0ac``
+   * - Per-cell energy cache
+     - Each move computes the flagged cells' nonbonded energy before and after.
+       A cell's plaid and diagonal energies depend only on its contents and
+       volume, so ``Cell`` caches them and ``moveIn``/``moveOut``/``reset``/
+       volume updates invalidate the cache. After an accepted move, a cell's
+       cached "new" energy is the next move's "old" energy. The cached value is
+       exactly what recomputation would give, so results are byte-identical.
+       This assumes ``chis``/``diag_chis`` are fixed for the life of a ``Sim``.
+     - ~1870 -> ~2170
+     - ``e31dd74``
+   * - Fixed-size ``unit_vec``
+     - Took and returned a dynamic ``Eigen::MatrixXd``, so it heap-allocated
+       on every translation, rotation, pivot and grid move.
+     - ~+1%
+     - ``c97efa4``
+   * - Skip angles when ``k_angle == 0``
+     - The converged config has ``angles_on`` with zero stiffness, so each move
+       evaluated four angle energies that were exactly zero.
+     - ~2190 -> ~2280
+     - ``36f7c82``
+   * - One pass for plaid observables
+     - ``saveObservables`` made 78 passes (one per species pair) over ~1300
+       active cells every 10 sweeps. Now it makes one pass, with the same
+       per-pair summation order.
+     - ~2280 -> ~2470
+     - ``c488f8c``
 
-Cumulatively this is roughly a **1.9x** speedup (~842 -> ~1650 sweeps/sec),
-with an identical simulation trajectory.
+Cumulatively the engine is now about **4x** faster than before this work
+(~610 -> ~2470 sweeps/sec on an M3), with a byte-identical simulation
+trajectory. The changes from ``Cell::contains`` onward give ~1.57x over
+``2abf125`` (~1570 -> ~2470, interleaved runs).
 
 The scope-timer profiler was also fixed as part of this work: the per-category
 ``Timer`` objects in ``Sim::MC()`` shared one block scope (explicit destructor
@@ -118,50 +186,78 @@ decay_length``; ``n_pivot`` is 10x fewer) looks like:
 =============  ===========
 Category       % of moves
 =============  ===========
-translating    ~60%
-cranking       ~28%
-gridmove       ~9%
+translating    ~61%
+cranking       ~32%
+gridmove       ~5%
 pivoting       ~3%
 =============  ===========
+
+(Before the ``Cell::contains`` change, gridmove was ~14%, not the ~9% this
+table used to show.) The scope timers cover only the moves. The
+``dump_stats_frequency`` output (``saveEnergy``, ``updateContacts``,
+``saveObservables``) is not timed and is roughly another 10-15% of wall time.
 
 Translation dominates because a translation displaces every bead in its segment
 by the full step, so more beads cross grid-cell boundaries (more flagged cells,
 more energy evaluation) than a crankshaft rotation of the same-length segment,
 whose beads sit close to the rotation axis and barely move. Both are now
 limited by the shared per-cell energy computation
-(``Cell::getEnergy`` + ``Cell::getDiagEnergy``).
+(``Cell::getEnergy`` + ``Cell::getDiagEnergy``). A sampling profile shows no
+measurable ``malloc``/``free`` left in the hot path. What remains is real
+arithmetic: the plaid double loop accounts for about a third of samples and
+the diagonal pair loop for about a fifth.
 
 Remaining opportunities
 -----------------------
 
-Not yet done; roughly in increasing order of risk/effort:
+The bitwise-preserving opportunities are largely used up. Anything that
+changes floating-point summation order or rounding cannot be checked by byte
+comparison, so it needs the statistical (ensemble) validation tier.
 
-- **``Cell::contains`` as a flat vector (the real ``meshBeads`` lever).**
-  Investigated the "reset only occupied cells" idea and it is *not* worth it:
-  the per-cell ``std::fill`` reset is only ~1-2% of runtime, and although most
-  active cells are empty (for the converged config ~344 of ~1300 active cells
-  are occupied, ~3 beads each), skipping the empty ones saves ~1% at most.
-  The actual cost of ``meshBeads`` (~7% of runtime) is the churn of each cell's
-  ``std::unordered_set<Bead*> contains``: re-inserting all beads (hash + node
-  malloc, ~6%) and freeing nodes on clear (~3%). That same structure is also
-  inserted/erased by every local move's ``moveIn``/``moveOut``. Converting
-  ``contains`` to a flat ``std::vector<Bead*>`` (as was done for the flagged-cell
-  set) would make ``clear`` free-free and inserts ``push_back``, speeding up
-  ``meshBeads`` *and* the local moves. ``moveOut`` becomes an O(k) linear erase,
-  but k is tiny (density cap, ~3 beads/cell). Changes cell iteration order, so
-  it needs statistical rather than bitwise validation. This is the productive
-  version of the ``meshBeads`` optimization.
-- **Grid-move frequency.** The grid move runs every sweep to suppress
-  discretization artifacts. Reducing its frequency is a modeling decision, not a
-  pure optimization -- it changes results -- so it is left to the user.
-- **``Cell::getEnergy`` division hoisting.** The plaid inner loop
-  (``ntypes`` x ``ntypes``) does a division per iteration; hoisting it changes
-  floating-point rounding (not bitwise-identical), so it needs statistical
+Bitwise-preserving, small:
+
+- **Keep output files open.** Each stats dump ``fopen``/``fclose``-es four or
+  five files. ``open``/``close``/``write`` syscalls are ~3% of samples. Keeping
+  the ``FILE*`` open with an ``fflush`` per dump would remove most of that.
+
+Tried and rejected (measured, not worth it):
+
+- **Keep the energy cache across the grid move's re-mesh.** ``meshBeads``
+  invalidates every cell each sweep, which is why only about half of "old"
+  energy lookups hit the cache. Re-validating cells whose membership is
+  unchanged and whose rebuilt ``typenums`` are bit-identical made the engine
+  ~4% *slower*. Most occupied cells are touched within a sweep, so their
+  incrementally updated ``typenums`` rarely bit-match the rebuilt ones. An
+  incremental re-mesh (move only beads whose cell index changed) would avoid
+  this, but it changes ``typenums`` rounding, so it needs statistical
   validation.
+- **Skip** ``exp`` **for downhill moves** (``dU >= 0`` always accepts, since
+  ``uniform()`` is in [0, 1)). Exact, but no measurable change.
+- **Resetting only occupied cells in** ``meshBeads``: ~1% at most (see the git
+  history of this page).
+
+Need statistical validation:
+
+- **``Cell::getEnergy`` division hoisting.** This is now the single largest
+  cost. The plaid inner loop (``ntypes`` x ``ntypes``) does a division per
+  iteration. Precomputing ``chis * vol / beadvol`` per cell, or a symmetric
+  ``phis^T chis phis`` product, changes rounding.
 - **``getDiagEnergy`` early exit.** Sorting a cell's bead indices would let the
   pairwise loop break once the genomic separation exceeds ``diag_cutoff``,
   pruning distant pairs. Marginal for sparse cells; helps dense ones.
-- **Incremental / delta energy (large refactor).** Each move recomputes full
-  old and new energies over all flagged cells from scratch, though only a few
-  beads changed. Computing just the energy delta of the moved beads would be a
-  substantial win but is a significant rework of the cell-based energy model.
+- **Incremental / delta energy (large refactor).** Each move still computes
+  the full new energy of every flagged cell. Computing just the energy delta
+  of the moved beads would be a substantial win, but it is a significant
+  rework of the cell-based energy model.
+
+Modeling decisions, not optimizations:
+
+- **Grid-move frequency.** The grid move runs every sweep to suppress
+  discretization artifacts. Reducing its frequency changes results.
+
+Not a performance issue, but noticed while verifying the grid-move change:
+``MCmove_grid`` rejects only when the summed density-cap energy reaches
+``9999999999``, while one over-full cell contributes ``99999999 * phi``
+(~5e7). A grid move is therefore rejected only if more than ~100 cells
+overflow at once. For the converged config this never matters (no cell came
+near the cap in 3000 grid moves), but the two constants look inconsistent.
